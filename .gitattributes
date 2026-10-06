@@ -8,6 +8,8 @@
 *.ico               binary
 *.db                binary
 *.exe               binary
+*.syso              binary
+*.dll               binary
 *.woff              binary
 *.woff2             binary
 *.ttf               binary
