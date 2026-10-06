@@ -361,3 +361,72 @@ func TestAPI_PruneData(t *testing.T) {
 		t.Fatalf("expected olderThanDays=30, got %d", res.OlderThanDays)
 	}
 }
+
+func TestAPI_CORSPreflightIncludesAllMethods(t *testing.T) {
+	srv, _, _ := setupTestServer(t)
+	handler := srv.Handler()
+
+	req := httptest.NewRequest(http.MethodOptions, "/v1/settings", nil)
+	req.Host = "127.0.0.1:8080"
+	req.Header.Set("Origin", "http://localhost:5173")
+	req.Header.Set("Access-Control-Request-Method", "PUT")
+	rec := httptest.NewRecorder()
+
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusNoContent {
+		t.Fatalf("expected 204 No Content for preflight OPTIONS, got %d", rec.Code)
+	}
+	methods := rec.Header().Get("Access-Control-Allow-Methods")
+	for _, m := range []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"} {
+		if !strings.Contains(methods, m) {
+			t.Errorf("expected CORS Allow-Methods to contain %q, got: %s", m, methods)
+		}
+	}
+	if rec.Header().Get("X-Content-Type-Options") != "nosniff" {
+		t.Errorf("expected nosniff header on OPTIONS response")
+	}
+}
+
+func TestAPI_StrictBearerAuth(t *testing.T) {
+	srv, token, _ := setupTestServer(t)
+	handler := srv.Handler()
+
+	req := httptest.NewRequest(http.MethodGet, "/v1/network", nil)
+	req.Host = "127.0.0.1:8080"
+	req.Header.Set("Authorization", token)
+	rec := httptest.NewRecorder()
+
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("expected 401 Unauthorized for raw token without 'Bearer ', got %d", rec.Code)
+	}
+	if rec.Header().Get("X-Content-Type-Options") != "nosniff" {
+		t.Errorf("expected nosniff header on 401 response")
+	}
+}
+
+func TestAPI_ParseOriginLoopbackValidation(t *testing.T) {
+	valid := []string{
+		"http://localhost:3000",
+		"http://127.0.0.1:5173",
+		"http://app.localhost",
+	}
+	for _, v := range valid {
+		if _, err := api.ParseOrigin(v); err != nil {
+			t.Errorf("expected %q to be valid, got: %v", v, err)
+		}
+	}
+
+	invalid := []string{
+		"https://evil.example.com",
+		"http://192.168.1.50:3000",
+		"not-a-url",
+	}
+	for _, inv := range invalid {
+		if _, err := api.ParseOrigin(inv); err == nil {
+			t.Errorf("expected %q to fail loopback check", inv)
+		}
+	}
+}

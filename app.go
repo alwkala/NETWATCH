@@ -21,6 +21,7 @@ type App struct {
 	token   string
 	log     *slog.Logger
 	st      *store.Store
+	eng     *engine.Engine
 	baseURL string
 	dataDir string
 	cancel  context.CancelFunc
@@ -67,6 +68,7 @@ func (a *App) start(parent context.Context) error {
 	a.cancel = cancel
 
 	eng := engine.New(engine.Options{Env: netenv.New(), Store: st, Logger: a.log})
+	a.eng = eng
 	eng.Start(ctx)
 
 	srv := api.New(eng, api.Config{Token: a.token, Version: version, DBPath: appdata.DBPath(a.dataDir), Logger: a.log})
@@ -89,6 +91,9 @@ func (a *App) start(parent context.Context) error {
 func (a *App) shutdown() {
 	if a.cancel != nil {
 		a.cancel()
+	}
+	if a.eng != nil {
+		a.eng.Stop()
 	}
 	if a.st != nil {
 		a.st.Close()

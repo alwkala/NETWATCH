@@ -242,6 +242,11 @@ func TestStore_ClearHistory(t *testing.T) {
 	if stats.DeviceCount != 0 || stats.EventCount != 0 {
 		t.Fatalf("tables not emptied: %+v", stats)
 	}
+
+	clearedAt, err := st.Meta(ctx, "history_cleared_at")
+	if err != nil || clearedAt == "" {
+		t.Fatalf("expected history_cleared_at in meta table, got %q, err=%v", clearedAt, err)
+	}
 }
 
 func TestStore_PruneEvents(t *testing.T) {

@@ -10,11 +10,14 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"net"
 	"net/netip"
 	"sort"
 	"strings"
 	"sync"
 	"time"
+	"unicode"
+	"unicode/utf8"
 
 	"netwatch/internal/model"
 	"netwatch/internal/netenv"
@@ -30,9 +33,13 @@ var (
 )
 
 // OfflineAfterMisses is how many consecutive scans a device may be absent
-// before it is marked offline. Phones and laptops routinely miss a single
-// sweep while asleep; requiring two avoids online/offline flapping.
-const OfflineAfterMisses = 2
+// before it is marked offline. Phones and laptops routinely miss sweeps
+// while asleep; requiring both multiple misses and minimum elapsed time
+// avoids online/offline flapping.
+const (
+	OfflineAfterMisses = 2
+	MinOfflineDuration = 5 * time.Minute
+)
 
 type Options struct {
 	Env      netenv.Env
@@ -51,6 +58,9 @@ type Engine struct {
 	log      *slog.Logger
 	now      func() time.Time
 
+	autoScanNotify chan struct{}
+	wg             sync.WaitGroup
+
 	commitMu sync.Mutex // serializes inventory writes
 
 	infoMu    sync.Mutex
@@ -60,8 +70,8 @@ type Engine struct {
 	scanMu sync.Mutex
 	scan   *scanState
 
-	mon            monitor
-	autoScanNotify chan struct{}
+	mon       monitor
+	portScans sync.Map // protects against parallel port probe storms on same device
 }
 
 func New(o Options) *Engine {
@@ -90,11 +100,23 @@ func New(o Options) *Engine {
 
 // Start launches background work (gateway latency monitor & auto-scan worker). It stops when ctx ends.
 func (e *Engine) Start(ctx context.Context) {
-	go e.runMonitor(ctx)
-	go e.runAutoScan(ctx)
+	e.wg.Add(2)
+	go func() {
+		defer e.wg.Done()
+		e.runMonitor(ctx)
+	}()
+	go func() {
+		defer e.wg.Done()
+		e.runAutoScan(ctx)
+	}()
 	if err := e.checkNetworkChange(ctx); err != nil {
 		e.log.Warn("network change check", "err", err)
 	}
+}
+
+// Stop waits for background workers to exit cleanly.
+func (e *Engine) Stop() {
+	e.wg.Wait()
 }
 
 // info returns the OS network configuration, cached briefly because several
@@ -138,6 +160,12 @@ func (e *Engine) active(ctx context.Context) (activeNet, error) {
 			}
 		}
 	}
+	// If gateway MAC is not in neighbor table yet, send a single ARP echo to pre-warm
+	if gwMAC == "" && ad.Gateway.IsValid() {
+		if mac, err := e.env.SendARP(ctx, ad.Gateway); err == nil && mac != "" {
+			gwMAC = mac
+		}
+	}
 	return activeNet{Adapter: ad, Info: in, Key: e.netKey(ctx, ad, gwMAC)}, nil
 }
 
@@ -149,7 +177,11 @@ func (e *Engine) netKey(ctx context.Context, ad netenv.Adapter, gwMAC string) st
 	base := ad.IP.Masked().String() + "|" + ad.Gateway.String()
 	if gwMAC != "" {
 		key := base + "|" + gwMAC
-		_ = e.st.SetMeta(ctx, "netkey:"+base, key)
+		if prev, _ := e.st.Meta(ctx, "netkey:"+base); prev != key {
+			e.commitMu.Lock()
+			_ = e.st.SetMeta(ctx, "netkey:"+base, key)
+			e.commitMu.Unlock()
+		}
 		return key
 	}
 	if last, _ := e.st.Meta(ctx, "netkey:"+base); last != "" {
@@ -159,7 +191,11 @@ func (e *Engine) netKey(ctx context.Context, ad netenv.Adapter, gwMAC string) st
 }
 
 func deviceID(netKey, mac string) string {
-	sum := sha256.Sum256([]byte(netKey + "|" + strings.ToLower(mac)))
+	norm := strings.ToLower(mac)
+	if hw, err := net.ParseMAC(mac); err == nil {
+		norm = hw.String()
+	}
+	sum := sha256.Sum256([]byte(netKey + "|" + norm))
 	return "dev-" + hex.EncodeToString(sum[:6])
 }
 
@@ -280,16 +316,32 @@ func (e *Engine) Events(ctx context.Context) ([]model.NetworkEvent, error) {
 	return e.st.Events(ctx, 300)
 }
 
+func cleanString(s string) string {
+	return strings.Map(func(r rune) rune {
+		// Strip control characters and bidirectional spoofing/override runes
+		if unicode.IsControl(r) || (r >= 0x202A && r <= 0x202E) || (r >= 0x2066 && r <= 0x2069) {
+			return -1
+		}
+		return r
+	}, s)
+}
+
 func (e *Engine) UpdateDevice(ctx context.Context, id string, p model.DevicePatch) (*model.Device, error) {
 	if p.CustomAlias != nil {
-		a := strings.TrimSpace(*p.CustomAlias)
-		if len(a) > 80 {
+		raw := strings.TrimSpace(*p.CustomAlias)
+		if utf8.RuneCountInString(raw) > 80 {
 			return nil, fmt.Errorf("%w: alias longer than 80 characters", ErrInvalid)
 		}
+		a := cleanString(raw)
 		p.CustomAlias = &a
 	}
-	if p.Notes != nil && len(*p.Notes) > 2000 {
-		return nil, fmt.Errorf("%w: notes longer than 2000 characters", ErrInvalid)
+	if p.Notes != nil {
+		raw := *p.Notes
+		if utf8.RuneCountInString(raw) > 2000 {
+			return nil, fmt.Errorf("%w: notes longer than 2000 characters", ErrInvalid)
+		}
+		notes := cleanString(raw)
+		p.Notes = &notes
 	}
 	e.commitMu.Lock()
 	defer e.commitMu.Unlock()
@@ -339,16 +391,21 @@ func (e *Engine) runAutoScan(ctx context.Context) {
 		}
 	}
 
-	timer := time.NewTimer(5 * time.Minute)
-	defer timer.Stop()
-
 	for {
 		st, err := e.st.GetSettings(ctx)
-		var d time.Duration
-		if err == nil && st.AutoDiscovery && st.ScanInterval != "manual" {
-			d = parseInterval(st.ScanInterval)
+		if err != nil {
+			e.log.Warn("failed to load settings for auto-scan, retrying in 1m", "err", err)
+			select {
+			case <-ctx.Done():
+				return
+			case <-e.autoScanNotify:
+				continue
+			case <-time.After(1 * time.Minute):
+				continue
+			}
 		}
-		if d <= 0 {
+
+		if !st.AutoDiscovery || st.ScanInterval == "manual" {
 			// Inactive or manual: wait until settings change or context ends
 			select {
 			case <-ctx.Done():
@@ -358,22 +415,27 @@ func (e *Engine) runAutoScan(ctx context.Context) {
 			}
 		}
 
-		timer.Reset(d)
+		d := parseInterval(st.ScanInterval)
+		if d <= 0 {
+			d = 5 * time.Minute
+		}
+
+		timer := time.NewTimer(d)
 		select {
 		case <-ctx.Done():
+			timer.Stop()
 			return
 		case <-e.autoScanNotify:
-			if !timer.Stop() {
-				select {
-				case <-timer.C:
-				default:
-				}
-			}
+			timer.Stop()
 			continue
 		case <-timer.C:
 			e.log.Info("executing scheduled auto-scan")
-			if _, err := e.StartScan("quick"); err != nil && !errors.Is(err, ErrScanRunning) {
-				e.log.Warn("scheduled auto-scan skipped", "err", err)
+			if _, err := e.StartScan("quick"); err != nil {
+				if errors.Is(err, ErrNoNetwork) {
+					e.log.Debug("scheduled auto-scan skipped (no active network)")
+				} else if !errors.Is(err, ErrScanRunning) {
+					e.log.Warn("scheduled auto-scan skipped", "err", err)
+				}
 			}
 		}
 	}
@@ -444,13 +506,18 @@ func slug(s string) string {
 	var b strings.Builder
 	for _, r := range strings.ToLower(s) {
 		switch {
-		case r >= 'a' && r <= 'z', r >= '0' && r <= '9':
+		case unicode.IsLetter(r) || unicode.IsDigit(r):
 			b.WriteRune(r)
-		default:
+		case r == '-' || r == '_' || r == ' ':
 			b.WriteByte('-')
 		}
 	}
-	return strings.Trim(b.String(), "-")
+	res := strings.Trim(b.String(), "-")
+	if res == "" {
+		sum := sha256.Sum256([]byte(s))
+		return "if-" + hex.EncodeToString(sum[:4])
+	}
+	return res
 }
 
 func netmask(bits int) string {

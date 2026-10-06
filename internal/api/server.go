@@ -127,6 +127,9 @@ func (s *Server) protect(next http.Handler) http.Handler {
 				writeErr(w, http.StatusInternalServerError, "internal", "internal error")
 			}
 		}()
+		w.Header().Set("Cache-Control", "no-store")
+		w.Header().Set("X-Content-Type-Options", "nosniff")
+
 		// 1. Host must be this loopback server (anti DNS-rebinding).
 		if !s.hostOK(r.Host) {
 			writeErr(w, http.StatusForbidden, "bad_host", "unexpected Host header")
@@ -143,7 +146,7 @@ func (s *Server) protect(next http.Handler) http.Handler {
 			h.Set("Access-Control-Allow-Origin", origin)
 			h.Set("Vary", "Origin")
 			h.Set("Access-Control-Allow-Headers", "Authorization, Content-Type")
-			h.Set("Access-Control-Allow-Methods", "GET, POST, PATCH, DELETE, OPTIONS")
+			h.Set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
 			h.Set("Access-Control-Max-Age", "600")
 		}
 		if r.Method == http.MethodOptions {
@@ -156,8 +159,6 @@ func (s *Server) protect(next http.Handler) http.Handler {
 			writeErr(w, http.StatusUnauthorized, "unauthorized", "missing or invalid token")
 			return
 		}
-		w.Header().Set("Cache-Control", "no-store")
-		w.Header().Set("X-Content-Type-Options", "nosniff")
 		r.Body = http.MaxBytesReader(w, r.Body, 64<<10)
 		next.ServeHTTP(w, r)
 	})
@@ -175,7 +176,10 @@ func (s *Server) hostOK(host string) bool {
 }
 
 func (s *Server) tokenOK(r *http.Request) bool {
-	got := strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer ")
+	got, ok := strings.CutPrefix(r.Header.Get("Authorization"), "Bearer ")
+	if !ok {
+		return false
+	}
 	return s.cfg.Token != "" && subtle.ConstantTimeCompare([]byte(got), []byte(s.cfg.Token)) == 1
 }
 
@@ -210,7 +214,7 @@ func (s *Server) fail(w http.ResponseWriter, err error) {
 		writeErr(w, http.StatusServiceUnavailable, "no_network", "No active network connection. Connect to a network and try again.")
 	default:
 		s.log.Error("request failed", "err", err)
-		writeErr(w, http.StatusInternalServerError, "internal", err.Error())
+		writeErr(w, http.StatusInternalServerError, "internal", "Internal server error")
 	}
 }
 
@@ -376,7 +380,11 @@ func (s *Server) scanStream(w http.ResponseWriter, r *http.Request) {
 		case <-r.Context().Done():
 			return
 		case <-changed:
-			time.Sleep(120 * time.Millisecond)
+			select {
+			case <-r.Context().Done():
+				return
+			case <-time.After(120 * time.Millisecond):
+			}
 		case <-hb.C:
 			fmt.Fprint(w, ": keep-alive\n\n")
 			fl.Flush()
@@ -522,8 +530,12 @@ func (s *Server) pruneData(w http.ResponseWriter, r *http.Request) {
 // ParseOrigin validates a user-supplied origin flag.
 func ParseOrigin(o string) (string, error) {
 	u, err := url.Parse(o)
-	if err != nil || u.Scheme == "" || u.Host == "" || u.Path != "" && u.Path != "/" {
+	if err != nil || u.Scheme == "" || u.Host == "" || (u.Path != "" && u.Path != "/") {
 		return "", fmt.Errorf("invalid origin %q (expected scheme://host[:port])", o)
+	}
+	hostname := u.Hostname()
+	if hostname != "localhost" && hostname != "127.0.0.1" && hostname != "::1" && !strings.HasSuffix(hostname, ".localhost") {
+		return "", fmt.Errorf("origin host %q must be a loopback address", hostname)
 	}
 	return u.Scheme + "://" + u.Host, nil
 }

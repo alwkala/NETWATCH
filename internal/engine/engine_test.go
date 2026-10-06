@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net/netip"
+	"strings"
 	"testing"
 	"time"
 
@@ -111,30 +112,56 @@ func TestFirstScanDiscoversEverything(t *testing.T) {
 }
 
 func TestOfflineNeedsConsecutiveMisses(t *testing.T) {
-	e, env := newTestEngine(t)
+	st, err := store.Open(":memory:")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer st.Close()
+	env := newFakeEnv()
+
+	clock := time.Now().UTC()
+	e := New(Options{
+		Env:   env,
+		Store: st,
+		Now:   func() time.Time { return clock },
+	})
+
 	runScan(t, e, "quick")
 
 	env.remove("192.168.1.12")
+	clock = clock.Add(1 * time.Minute)
 	runScan(t, e, "quick")
 	if d := byIP(t, e, "192.168.1.12"); d.Status != model.StatusOnline {
 		t.Fatalf("one missed scan must not flip status, got %s", d.Status)
 	}
+
+	// Second miss at t=2m: missed=2, but elapsed (2m) < MinOfflineDuration (5m), stays online
+	clock = clock.Add(1 * time.Minute)
+	runScan(t, e, "quick")
+	if d := byIP(t, e, "192.168.1.12"); d.Status != model.StatusOnline {
+		t.Fatalf("2 misses within 2m (< MinOfflineDuration) must still stay online, got %s", d.Status)
+	}
+
+	// Third miss at t=6m: elapsed (6m) >= MinOfflineDuration (5m), transitions to offline
+	clock = clock.Add(4 * time.Minute)
 	runScan(t, e, "quick")
 	d := byIP(t, e, "192.168.1.12")
 	if d.Status != model.StatusOffline || d.LatencyMs != nil {
-		t.Fatalf("after %d misses want offline, got %+v", OfflineAfterMisses, d)
+		t.Fatalf("after %d misses and >=%v want offline, got %+v", OfflineAfterMisses, MinOfflineDuration, d)
 	}
 	if n := eventTypes(t, e)[model.EvOffline]; n != 1 {
 		t.Errorf("offline events = %d, want 1", n)
 	}
 
 	// Another scan while it is still gone must not repeat the event.
+	clock = clock.Add(1 * time.Minute)
 	runScan(t, e, "quick")
 	if n := eventTypes(t, e)[model.EvOffline]; n != 1 {
 		t.Errorf("offline event repeated: %d", n)
 	}
 
 	// It comes back.
+	clock = clock.Add(1 * time.Minute)
 	env.add("192.168.1.12", "3c:06:30:4a:21:8f", 5*time.Millisecond)
 	runScan(t, e, "quick")
 	if d := byIP(t, e, "192.168.1.12"); d.Status != model.StatusOnline {
@@ -338,5 +365,73 @@ func TestNetworkInfo(t *testing.T) {
 	}
 	if info.DNS == nil || info.PingStats.History == nil {
 		t.Error("slices must serialize as [] not null")
+	}
+}
+
+func TestEngine_UnicodeAliasAndBidiFiltering(t *testing.T) {
+	e, _ := newTestEngine(t)
+	runScan(t, e, "quick")
+	target := byIP(t, e, "192.168.1.12")
+
+	// 50-character Arabic string (each character is 2 bytes in UTF-8 => 100 bytes)
+	// Prior code failed with len(a) > 80. New code must pass!
+	// Inject a Bidi override rune (U+202E Right-To-Left Override)
+	aliasWithBidi := "جهاز" + "\u202E" + " آمن"
+
+	patch := model.DevicePatch{
+		CustomAlias: &aliasWithBidi,
+	}
+	dev, err := e.UpdateDevice(context.Background(), target.ID, patch)
+	if err != nil {
+		t.Fatalf("UpdateDevice failed with Arabic alias: %v", err)
+	}
+	if dev.CustomAlias != "جهاز آمن" {
+		t.Errorf("expected bidi override to be stripped, got %q", dev.CustomAlias)
+	}
+
+	tooLong := strings.Repeat("ع", 85)
+	if _, err := e.UpdateDevice(context.Background(), target.ID, model.DevicePatch{CustomAlias: &tooLong}); !errors.Is(err, ErrInvalid) {
+		t.Errorf("expected ErrInvalid for > 80 runes, got %v", err)
+	}
+}
+
+func TestEngine_UnicodeSlugGeneration(t *testing.T) {
+	s1 := slug("إيثرنت محلي")
+	if s1 == "" || s1 == "if-" {
+		t.Errorf("expected non-empty slug for Arabic name, got %q", s1)
+	}
+
+	s2 := slug("---")
+	if !strings.HasPrefix(s2, "if-") {
+		t.Errorf("expected hash fallback for punctuation name, got %q", s2)
+	}
+}
+
+func TestEngine_DeviceIDMACNormalization(t *testing.T) {
+	id1 := deviceID("net1", "00-11-22-33-44-55")
+	id2 := deviceID("net1", "00:11:22:33:44:55")
+	id3 := deviceID("net1", "0011.2233.4455")
+	if id1 != id2 || id2 != id3 {
+		t.Errorf("expected normalized IDs to be identical: id1=%s, id2=%s, id3=%s", id1, id2, id3)
+	}
+}
+
+func TestEngine_ScanDevicePortsConcurrencyGuard(t *testing.T) {
+	e, _ := newTestEngine(t)
+	runScan(t, e, "quick")
+	d := byIP(t, e, "192.168.1.12")
+
+	e.portScans.Store(d.ID, struct{}{})
+
+	_, err := e.ScanDevicePorts(context.Background(), d.ID)
+	if !errors.Is(err, ErrInvalid) {
+		t.Fatalf("expected ErrInvalid when port scan already in progress, got: %v", err)
+	}
+
+	e.portScans.Delete(d.ID)
+
+	_, err = e.ScanDevicePorts(context.Background(), d.ID)
+	if err != nil {
+		t.Fatalf("port scan should succeed after lock released: %v", err)
 	}
 }

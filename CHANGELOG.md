@@ -25,6 +25,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Exposed `POST /v1/data/prune` loopback endpoint in `internal/api/server.go`.
   - Added unit test cases in `internal/store/store_test.go` and `internal/api/server_test.go`.
   - Added "Prune Events (>30d)" maintenance action and removed preview badges in `frontend/src/pages/Settings.tsx`.
+### Fixed
+- **API CORS & Preflight Support (H1)**:
+  - Added `PUT` to `Access-Control-Allow-Methods` in `internal/api/server.go`, resolving browser CORS preflight rejections when persisting settings via Vite/WebView2.
+- **Auto-Scan Scheduler Resilience (H2)**:
+  - Fixed background auto-scan loop hanging indefinitely upon transient SQLite store errors; added automatic 1-minute retry logic and downgraded offline scan log noise to debug.
+- **Flap Resistance Dual-Condition (H3)**:
+  - Enhanced offline state reconciliation in `internal/engine/reconcile.go` to require both `Missed >= 2` and `Now - LastSeen >= 5m`, preventing false offline flips on rapid scans or sleeping Wi-Fi radios.
+- **Network Key & Identity Stability (H4, L3)**:
+  - Added pre-emptive gateway ARP echo in `internal/engine/engine.go` to ensure gateway MAC address availability on first pass; guarded `netKey` persistence against write amplification on read paths.
+  - Standardized MAC addresses in `deviceID` using `net.ParseMAC` to eliminate ID drift caused by delimiter variations.
+- **Unicode, Arabic & Bidi Character Hardening (M1, M2)**:
+  - Migrated device alias and notes length validation to `utf8.RuneCountInString`, enabling full-length Arabic names up to 80 characters.
+  - Sanitized control characters and Unicode bidirectional spoofing override runes (`U+202A–202E`, `U+2066–2069`).
+  - Added Unicode support to network interface `slug()` generator with SHA-256 fallback to prevent collision of `if-` IDs on non-English Windows editions.
+- **Secure Data Erasure & Privacy Audit (M4)**:
+  - Enhanced `ClearHistory` in `internal/store/store.go` to record a non-repudiation audit timestamp (`history_cleared_at`), execute `PRAGMA wal_checkpoint(TRUNCATE)`, and trigger `VACUUM` to physically reclaim and wipe SQLite disk pages.
+- **Engine Shutdown & Concurrency Safeguards (M5, M6, L4)**:
+  - Added `sync.WaitGroup` and `Engine.Stop()` for orderly shutdown of background goroutines on window exit.
+  - Added in-flight concurrency lock to `ScanDevicePorts` preventing duplicate port scan storms on target devices.
+  - Replaced blocking sleep with context-aware timer in SSE stream handler.
+  - Sanitized 500 error responses and enforced strict `Bearer ` token parsing.
 
 ### Changed
 - **SQLite Engine Driver Upgrade**:

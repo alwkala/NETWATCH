@@ -429,7 +429,8 @@ func (s *Store) SetMeta(ctx context.Context, key, value string) error {
 	return err
 }
 
-// ClearHistory removes devices, events and scans (the "Clear History" action).
+// ClearHistory removes devices, events and scans (the "Clear History" action),
+// logs an erasure audit record in meta, and compacts the database file.
 func (s *Store) ClearHistory(ctx context.Context) error {
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -441,7 +442,16 @@ func (s *Store) ClearHistory(ctx context.Context) error {
 			return err
 		}
 	}
-	return tx.Commit()
+	clearedAt := time.Now().UTC().Format(time.RFC3339)
+	if _, err := tx.ExecContext(ctx, `INSERT INTO meta(key, value) VALUES ('history_cleared_at', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value`, clearedAt); err != nil {
+		return err
+	}
+	if err := tx.Commit(); err != nil {
+		return err
+	}
+	_, _ = s.db.ExecContext(ctx, `PRAGMA wal_checkpoint(TRUNCATE)`)
+	_, _ = s.db.ExecContext(ctx, `VACUUM`)
+	return nil
 }
 
 // PruneEvents removes audit log events and device_events older than olderThanDays.

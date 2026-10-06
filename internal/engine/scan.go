@@ -424,6 +424,11 @@ func (e *Engine) probePorts(ctx context.Context, ip netip.Addr) []int {
 
 // ScanDevicePorts probes one device and stores what is open.
 func (e *Engine) ScanDevicePorts(ctx context.Context, id string) ([]model.DeviceService, error) {
+	if _, loaded := e.portScans.LoadOrStore(id, struct{}{}); loaded {
+		return nil, fmt.Errorf("%w: port scan already in progress for this device", ErrInvalid)
+	}
+	defer e.portScans.Delete(id)
+
 	dev, err := e.st.GetDevice(ctx, id)
 	if err != nil {
 		return nil, err

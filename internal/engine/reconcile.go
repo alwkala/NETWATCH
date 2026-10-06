@@ -169,7 +169,7 @@ func reconcile(in reconcileIn) reconcileOut {
 		k := prev
 		if prev.Status == model.StatusOnline {
 			k.Missed++
-			if k.Missed >= OfflineAfterMisses {
+			if k.Missed >= OfflineAfterMisses && in.Now.Sub(prev.LastSeen) >= MinOfflineDuration {
 				k.Status, k.LatencyMs = model.StatusOffline, nil
 				ws.Events = append(ws.Events, model.NetworkEvent{
 					Timestamp: in.Now, Type: model.EvOffline, Title: "Device went offline",
