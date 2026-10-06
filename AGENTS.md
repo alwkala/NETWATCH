@@ -184,10 +184,10 @@ cd frontend && npx tsc --noEmit && npx vite build
   - [x] Native Windows toast notifications for new devices, offline events, and network changes (`internal/notifier`).
   - [x] System startup integration: launch at startup via HKCU Run key (`internal/autostart`), `--minimized` launch flag, and single-instance restoration.
   - [x] Event history retention and pruning (`POST /v1/data/prune`).
-- [ ] **M4 – Better Identity (In Progress)**: mDNS (Bonjour), NetBIOS, SSDP/UPnP, DHCP lease info, Wi-Fi SSID via WLAN API, confidence scoring with "Unknown" fallback.
-- [ ] **M5 – Diagnostics**: Hop-by-hop traceroute, reverse DNS latency benchmark, per-device latency history charts.
-- [ ] **M6 – QA & Data Lifecycle**: Playwright E2E smoke suite, export to JSON/CSV, event log retention policy.
-- [ ] **M7 – Release & Code Signing**: Windows MSI/NSIS installer, SignPath.io Authenticode signing, opt-in updates.
+- [ ] **M4 – Identity & Trust (In Progress)**: Randomized MAC detection (`isLocallyAdministered`), "Private MAC" badge, device merge & aliasing (`POST /v1/devices/{id}/merge`), trust allowlist (`known`/`guest`/`unknown`), unprivileged mDNS & NetBIOS probers, untrusted hostname sanitization, and automated Zero-Egress CI gate.
+- [ ] **M5 – Watchdog & Diagnostics**: ARP conflict & duplicate IP alerts, rogue gateway MAC detection, local rules engine, hop-by-hop traceroute, and per-device latency/uptime history ledger.
+- [ ] **M6 – Diff, Reports & QA**: Historical snapshot diff engine (`GET /v1/reports/diff`), safe CSV export with formula injection defense (`=,+,-,@` escaping), structured JSON export, and Playwright E2E smoke suite.
+- [ ] **M7 – Signed Production**: SignPath.io Authenticode signing, Windows MSI/NSIS installer, SBOM, and `THIRD_PARTY_NOTICES.md`.
 
 ---
 
