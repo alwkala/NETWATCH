@@ -9,6 +9,8 @@ updates:
       go-dependencies:
         patterns:
           - "*"
+    ignore:
+      - dependency-name: "github.com/wailsapp/wails/v2"
     labels:
       - "type:dependency"
 
@@ -21,13 +23,10 @@ updates:
       frontend-dependencies:
         patterns:
           - "*"
-    labels:
-      - "type:dependency"
-
-  - package-ecosystem: "github-actions"
-    directory: "/"
-    schedule:
-      interval: "weekly"
-    open-pull-requests-limit: 5
+    ignore:
+      - dependency-name: "@types/node"
+      - dependency-name: "motion"
+      - dependency-name: "lucide-react"
+        update-types: ["version-update:semver-major"]
     labels:
       - "type:dependency"
