@@ -133,7 +133,12 @@ export class HttpNetworkService implements NetworkService {
     if ('customAlias' in updates) patch.customAlias = updates.customAlias ?? '';
     if ('notes' in updates) patch.notes = updates.notes ?? '';
     if ('isNew' in updates) patch.isNew = !!updates.isNew;
+    if ('trustStatus' in updates) patch.trustStatus = updates.trustStatus;
     return toDevice(await this.request<WireDevice>('PATCH', `/v1/devices/${encodeURIComponent(id)}`, patch));
+  }
+
+  async mergeDevices(targetId: string, sourceId: string): Promise<void> {
+    await this.request('POST', `/v1/devices/${encodeURIComponent(targetId)}/merge`, { sourceId });
   }
 
   async pingDevice(ip: string): Promise<{ success: boolean; latencyMs: number }> {

@@ -343,12 +343,28 @@ func (e *Engine) UpdateDevice(ctx context.Context, id string, p model.DevicePatc
 		notes := cleanString(raw)
 		p.Notes = &notes
 	}
+	if p.TrustStatus != nil {
+		ts := *p.TrustStatus
+		if ts != model.TrustKnown && ts != model.TrustGuest && ts != model.TrustUnknown {
+			return nil, fmt.Errorf("%w: invalid trust status (must be known, guest, or unknown)", ErrInvalid)
+		}
+	}
 	e.commitMu.Lock()
 	defer e.commitMu.Unlock()
 	if err := e.st.UpdateDevice(ctx, id, p); err != nil {
 		return nil, err
 	}
 	return e.st.GetDevice(ctx, id)
+}
+
+// MergeDevices unifies two device records into one canonical identity.
+func (e *Engine) MergeDevices(ctx context.Context, targetID, sourceID string) error {
+	if targetID == sourceID {
+		return fmt.Errorf("%w: cannot merge device into itself", ErrInvalid)
+	}
+	e.commitMu.Lock()
+	defer e.commitMu.Unlock()
+	return e.st.MergeDevices(ctx, targetID, sourceID)
 }
 
 // ClearHistory wipes the inventory, events and scan log.

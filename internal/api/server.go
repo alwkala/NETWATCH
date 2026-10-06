@@ -98,6 +98,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /v1/devices", s.devices)
 	mux.HandleFunc("GET /v1/devices/{id}", s.device)
 	mux.HandleFunc("PATCH /v1/devices/{id}", s.patchDevice)
+	mux.HandleFunc("POST /v1/devices/{id}/merge", s.mergeDevice)
 	mux.HandleFunc("GET /v1/devices/{id}/history", s.history)
 	mux.HandleFunc("POST /v1/devices/{id}/ports", s.devicePorts)
 	mux.HandleFunc("GET /v1/events", s.events)
@@ -272,6 +273,24 @@ func (s *Server) patchDevice(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, d)
+}
+
+func (s *Server) mergeDevice(w http.ResponseWriter, r *http.Request) {
+	var req model.MergeDevicesRequest
+	if err := decode(r, &req); err != nil {
+		s.fail(w, err)
+		return
+	}
+	targetID := r.PathValue("id")
+	if req.SourceID == "" {
+		writeErr(w, http.StatusBadRequest, "invalid_argument", "sourceId is required")
+		return
+	}
+	if err := s.eng.MergeDevices(r.Context(), targetID, req.SourceID); err != nil {
+		s.fail(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"success": true})
 }
 
 func (s *Server) history(w http.ResponseWriter, r *http.Request) {

@@ -154,6 +154,17 @@ var migrations = []string{
 		errors      INTEGER NOT NULL
 	);
 	CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);`,
+
+	// v2: Identity & Trust, MAC Aliases, and Merged Devices
+	`ALTER TABLE devices ADD COLUMN is_randomized_mac INTEGER NOT NULL DEFAULT 0;
+	ALTER TABLE devices ADD COLUMN trust_status TEXT NOT NULL DEFAULT 'unknown';
+	ALTER TABLE devices ADD COLUMN merged_into TEXT NOT NULL DEFAULT '';
+	CREATE TABLE IF NOT EXISTS device_mac_aliases (
+		alias_mac           TEXT PRIMARY KEY,
+		canonical_device_id TEXT NOT NULL REFERENCES devices(id) ON DELETE CASCADE,
+		created_at          INTEGER NOT NULL
+	);
+	CREATE INDEX IF NOT EXISTS idx_mac_aliases_canonical ON device_mac_aliases(canonical_device_id);`,
 }
 
 func (s *Store) migrate(ctx context.Context) error {
@@ -190,21 +201,26 @@ func nullInt(p *int) any {
 	return *p
 }
 
-const deviceCols = `id, net, mac, ip, hostname, vendor, type, name, custom_alias, notes, os, status, is_new, missed, latency_ms, first_seen, last_seen`
+const deviceCols = `id, net, mac, ip, hostname, vendor, type, name, custom_alias, notes, os, status, is_new, missed, latency_ms, first_seen, last_seen, is_randomized_mac, trust_status, merged_into`
 
 func scanKnown(sc interface{ Scan(...any) error }) (Known, error) {
 	var (
 		k          Known
 		isNew      int
+		isRand     int
 		lat        sql.NullInt64
 		first, lst int64
 	)
 	err := sc.Scan(&k.ID, &k.Net, &k.MAC, &k.IP, &k.Hostname, &k.Vendor, &k.Type, &k.Name, &k.CustomAlias,
-		&k.Notes, &k.OS, &k.Status, &isNew, &k.Missed, &lat, &first, &lst)
+		&k.Notes, &k.OS, &k.Status, &isNew, &k.Missed, &lat, &first, &lst, &isRand, &k.TrustStatus, &k.MergedInto)
 	if err != nil {
 		return k, err
 	}
 	k.IsNew = isNew != 0
+	k.IsRandomizedMAC = isRand != 0
+	if k.TrustStatus == "" {
+		k.TrustStatus = model.TrustUnknown
+	}
 	if lat.Valid {
 		v := int(lat.Int64)
 		k.LatencyMs = &v
@@ -358,6 +374,14 @@ func (s *Store) UpdateDevice(ctx context.Context, id string, p model.DevicePatch
 			return err
 		}
 	}
+	if p.TrustStatus != nil {
+		status := *p.TrustStatus
+		if status == model.TrustKnown || status == model.TrustGuest || status == model.TrustUnknown {
+			if _, err := tx.ExecContext(ctx, `UPDATE devices SET trust_status = ? WHERE id = ?`, status, id); err != nil {
+				return err
+			}
+		}
+	}
 	return tx.Commit()
 }
 
@@ -373,12 +397,21 @@ func (s *Store) Commit(ctx context.Context, w Writeset) error {
 		if k.IsNew {
 			isNew = 1
 		}
-		_, err := tx.ExecContext(ctx, `INSERT INTO devices (`+deviceCols+`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+		isRand := 0
+		if k.IsRandomizedMAC {
+			isRand = 1
+		}
+		trust := k.TrustStatus
+		if trust == "" {
+			trust = model.TrustUnknown
+		}
+		_, err := tx.ExecContext(ctx, `INSERT INTO devices (`+deviceCols+`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
 			ON CONFLICT(id) DO UPDATE SET mac=excluded.mac, ip=excluded.ip, hostname=excluded.hostname, vendor=excluded.vendor,
 				type=excluded.type, name=excluded.name, os=excluded.os, status=excluded.status, is_new=excluded.is_new,
-				missed=excluded.missed, latency_ms=excluded.latency_ms, last_seen=excluded.last_seen`,
+				missed=excluded.missed, latency_ms=excluded.latency_ms, last_seen=excluded.last_seen,
+				is_randomized_mac=excluded.is_randomized_mac, trust_status=excluded.trust_status, merged_into=excluded.merged_into`,
 			k.ID, k.Net, k.MAC, k.IP, k.Hostname, k.Vendor, k.Type, k.Name, k.CustomAlias, k.Notes, k.OS, k.Status,
-			isNew, k.Missed, nullInt(k.LatencyMs), ms(k.FirstSeen), ms(k.LastSeen))
+			isNew, k.Missed, nullInt(k.LatencyMs), ms(k.FirstSeen), ms(k.LastSeen), isRand, trust, k.MergedInto)
 		if err != nil {
 			return fmt.Errorf("upsert %s: %w", k.ID, err)
 		}
@@ -550,4 +583,87 @@ func (s *Store) IntegrityCheck(ctx context.Context) (string, error) {
 		return "", err
 	}
 	return res, nil
+}
+
+// MACAliases returns a map of uppercase alias MAC -> canonical device ID.
+func (s *Store) MACAliases(ctx context.Context) (map[string]string, error) {
+	rows, err := s.db.QueryContext(ctx, `SELECT alias_mac, canonical_device_id FROM device_mac_aliases`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	m := make(map[string]string)
+	for rows.Next() {
+		var mac, id string
+		if err := rows.Scan(&mac, &id); err != nil {
+			return nil, err
+		}
+		m[strings.ToUpper(mac)] = id
+	}
+	return m, rows.Err()
+}
+
+// MergeDevices unifies sourceID into targetID, transferring event history,
+// registering the source MAC as an alias for targetID, and deleting the source record.
+func (s *Store) MergeDevices(ctx context.Context, targetID, sourceID string) error {
+	if targetID == sourceID {
+		return fmt.Errorf("cannot merge device into itself")
+	}
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	var targetMAC, targetName string
+	err = tx.QueryRowContext(ctx, `SELECT mac, name FROM devices WHERE id = ?`, targetID).Scan(&targetMAC, &targetName)
+	if errors.Is(err, sql.ErrNoRows) {
+		return ErrNotFound
+	} else if err != nil {
+		return err
+	}
+
+	var sourceMAC, sourceIP, sourceName string
+	err = tx.QueryRowContext(ctx, `SELECT mac, ip, name FROM devices WHERE id = ?`, sourceID).Scan(&sourceMAC, &sourceIP, &sourceName)
+	if errors.Is(err, sql.ErrNoRows) {
+		return ErrNotFound
+	} else if err != nil {
+		return err
+	}
+
+	nowMs := ms(time.Now().UTC())
+
+	// Transfer device_events
+	if _, err := tx.ExecContext(ctx, `UPDATE device_events SET device_id = ? WHERE device_id = ?`, targetID, sourceID); err != nil {
+		return err
+	}
+
+	// Register source MAC as alias of targetID
+	if _, err := tx.ExecContext(ctx, `INSERT INTO device_mac_aliases(alias_mac, canonical_device_id, created_at) VALUES (?, ?, ?)
+		ON CONFLICT(alias_mac) DO UPDATE SET canonical_device_id = excluded.canonical_device_id`, strings.ToUpper(sourceMAC), targetID, nowMs); err != nil {
+		return err
+	}
+
+	// Re-point any existing aliases pointing to sourceID to targetID
+	if _, err := tx.ExecContext(ctx, `UPDATE device_mac_aliases SET canonical_device_id = ? WHERE canonical_device_id = ?`, targetID, sourceID); err != nil {
+		return err
+	}
+
+	desc := fmt.Sprintf("Merged device %s (MAC: %s, IP: %s) into this record", sourceName, strings.ToUpper(sourceMAC), sourceIP)
+	if _, err := tx.ExecContext(ctx, `INSERT INTO device_events(device_id, ts, type, description) VALUES (?, ?, ?, ?)`,
+		targetID, nowMs, model.HistDeviceMerged, desc); err != nil {
+		return err
+	}
+
+	if _, err := tx.ExecContext(ctx, `INSERT INTO events(ts, type, title, device_id, device_name, ip, mac, details) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+		nowMs, model.EvDeviceMerged, "Device identity merged", targetID, targetName, sourceIP, strings.ToUpper(sourceMAC), desc); err != nil {
+		return err
+	}
+
+	// Delete source device record so it no longer appears as a duplicate
+	if _, err := tx.ExecContext(ctx, `DELETE FROM devices WHERE id = ?`, sourceID); err != nil {
+		return err
+	}
+
+	return tx.Commit()
 }

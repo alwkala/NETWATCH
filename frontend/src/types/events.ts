@@ -4,7 +4,8 @@ export type EventType =
   | 'offline'
   | 'network_change'
   | 'scan'
-  | 'service_change';
+  | 'service_change'
+  | 'device_merged';
 
 export interface NetworkEvent {
   id: string;

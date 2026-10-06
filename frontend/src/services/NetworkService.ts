@@ -18,6 +18,7 @@ export interface NetworkService {
   pingDevice(ip: string): Promise<{ success: boolean; latencyMs: number }>;
   wakeOnLan(mac: string): Promise<{ success: boolean; message: string }>;
   scanDevicePorts(id: string): Promise<DeviceService[]>;
+  mergeDevices?(targetId: string, sourceId: string): Promise<void>;
   
   // Settings & Database Management
   getSettings?(): Promise<AppSettings>;

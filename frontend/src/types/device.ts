@@ -14,6 +14,8 @@ export type DeviceType =
 
 export type DeviceStatus = 'online' | 'offline';
 
+export type TrustStatus = 'known' | 'guest' | 'unknown';
+
 export interface DeviceService {
   port: number;
   protocol: 'TCP' | 'UDP';
@@ -24,7 +26,7 @@ export interface DeviceService {
 export interface DeviceEvent {
   id: string;
   timestamp: string;
-  type: 'discovered' | 'online' | 'offline' | 'ip_changed' | 'service_detected';
+  type: 'discovered' | 'online' | 'offline' | 'ip_changed' | 'service_detected' | 'device_merged';
   description: string;
 }
 
@@ -39,6 +41,9 @@ export interface Device {
   type: DeviceType;
   status: DeviceStatus;
   isNew?: boolean;
+  isRandomizedMac?: boolean;
+  trustStatus?: TrustStatus;
+  mergedInto?: string;
   firstSeen: string;
   lastSeen: string;
   /** RFC 3339 instant behind `lastSeen` (real engine only), used for sorting. */

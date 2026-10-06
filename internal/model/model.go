@@ -34,6 +34,14 @@ const (
 	EvNetworkChange = "network_change"
 	EvScan          = "scan"
 	EvServiceChange = "service_change"
+	EvDeviceMerged  = "device_merged"
+)
+
+// Trust status classifications (frontend TrustStatus).
+const (
+	TrustKnown   = "known"
+	TrustGuest   = "guest"
+	TrustUnknown = "unknown"
 )
 
 // Per-device history types (frontend DeviceEvent['type']).
@@ -43,6 +51,7 @@ const (
 	HistOffline         = "offline"
 	HistIPChanged       = "ip_changed"
 	HistServiceDetected = "service_detected"
+	HistDeviceMerged    = "device_merged"
 )
 
 type DeviceService struct {
@@ -67,16 +76,19 @@ type Device struct {
 	IP          string          `json:"ip"`
 	MAC         string          `json:"mac"`
 	Vendor      string          `json:"vendor"`
-	Type        string          `json:"type"`
-	Status      string          `json:"status"`
-	IsNew       bool            `json:"isNew,omitempty"`
-	FirstSeen   time.Time       `json:"firstSeen"`
-	LastSeen    time.Time       `json:"lastSeen"`
-	LatencyMs   *int            `json:"latencyMs,omitempty"`
-	OS          string          `json:"os,omitempty"`
-	Notes       string          `json:"notes,omitempty"`
-	Services    []DeviceService `json:"services,omitempty"`
-	History     []DeviceEvent   `json:"history,omitempty"`
+	Type            string          `json:"type"`
+	Status          string          `json:"status"`
+	IsNew           bool            `json:"isNew,omitempty"`
+	IsRandomizedMAC bool            `json:"isRandomizedMac"`
+	TrustStatus     string          `json:"trustStatus"` // known | guest | unknown
+	MergedInto      string          `json:"mergedInto,omitempty"`
+	FirstSeen       time.Time       `json:"firstSeen"`
+	LastSeen        time.Time       `json:"lastSeen"`
+	LatencyMs       *int            `json:"latencyMs,omitempty"`
+	OS              string          `json:"os,omitempty"`
+	Notes           string          `json:"notes,omitempty"`
+	Services        []DeviceService `json:"services,omitempty"`
+	History         []DeviceEvent   `json:"history,omitempty"`
 }
 
 type NetworkEvent struct {
@@ -149,6 +161,12 @@ type DevicePatch struct {
 	CustomAlias *string `json:"customAlias,omitempty"`
 	Notes       *string `json:"notes,omitempty"`
 	IsNew       *bool   `json:"isNew,omitempty"`
+	TrustStatus *string `json:"trustStatus,omitempty"`
+}
+
+// MergeDevicesRequest defines the payload for POST /v1/devices/{targetId}/merge.
+type MergeDevicesRequest struct {
+	SourceID string `json:"sourceId"`
 }
 
 // Settings represents persistent user preferences.

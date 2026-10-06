@@ -311,9 +311,9 @@ func (e *Engine) doScan(ctx context.Context, st *scanState) (model.ScanResult, e
 	}
 	forEach(ctx, obs, 24, func(o *observation) {
 		if o.IsSelf {
-			o.Hostname = selfHost
+			o.Hostname = fingerprint.SanitizeLANString(selfHost)
 		} else {
-			o.Hostname = e.env.ReverseLookup(ctx, o.IP, rLookupTimeout)
+			o.Hostname = fingerprint.SanitizeLANString(e.env.ReverseLookup(ctx, o.IP, rLookupTimeout))
 		}
 		if kind == "full" {
 			o.Ports, o.PortScanned = e.probePorts(ctx, o.IP), true
@@ -332,6 +332,7 @@ func (e *Engine) doScan(ctx context.Context, st *scanState) (model.ScanResult, e
 	if err != nil {
 		return model.ScanResult{}, err
 	}
+	aliases, _ := e.st.MACAliases(ctx)
 	plain := make([]observation, len(obs))
 	for i, o := range obs {
 		plain[i] = *o
@@ -339,6 +340,7 @@ func (e *Engine) doScan(ctx context.Context, st *scanState) (model.ScanResult, e
 	out := reconcile(reconcileIn{
 		NetKey: an.Key, Now: e.now(), Gateway: ad.Gateway,
 		Known: known, Obs: plain, Vendor: vendorFunc(e.oui),
+		Aliases: aliases,
 	})
 	dur := e.now().Sub(started)
 	res := model.ScanResult{

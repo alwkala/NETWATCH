@@ -33,6 +33,7 @@ type reconcileIn struct {
 	Known   []store.Known
 	Obs     []observation
 	Vendor  func(mac string) string
+	Aliases map[string]string // uppercase MAC -> canonical device ID
 }
 
 type reconcileOut struct {
@@ -58,9 +59,15 @@ func reconcile(in reconcileIn) reconcileOut {
 	sort.Slice(obs, func(i, j int) bool { return obs[i].IP.Less(obs[j].IP) })
 
 	for _, o := range obs {
+		rawMAC := strings.ToUpper(o.MAC)
 		id := deviceID(in.NetKey, o.MAC)
+		if in.Aliases != nil {
+			if canonicalID, ok := in.Aliases[rawMAC]; ok && canonicalID != "" {
+				id = canonicalID
+			}
+		}
 		if seen[id] {
-			continue // duplicate ARP row for the same MAC
+			continue // duplicate ARP row or aliased MAC for the same device
 		}
 		seen[id] = true
 		out.Found++
@@ -97,6 +104,7 @@ func reconcile(in reconcileIn) reconcileOut {
 		k.Hostname, k.Vendor = o.Hostname, fingerprint.DisplayVendor(vendor, o.MAC)
 		k.Type, k.Name, k.Status = typ, name, model.StatusOnline
 		k.LatencyMs, k.LastSeen, k.Missed = lat, in.Now, 0
+		k.IsRandomizedMAC = oui.IsLocallyAdministered(o.MAC)
 
 		detail := "Seen in ARP table"
 		if lat != nil {
@@ -104,6 +112,7 @@ func reconcile(in reconcileIn) reconcileOut {
 		}
 
 		if !existed {
+			k.TrustStatus = model.TrustUnknown
 			k.FirstSeen, k.IsNew = in.Now, true
 			out.New++
 			ws.Events = append(ws.Events, model.NetworkEvent{
@@ -116,6 +125,11 @@ func reconcile(in reconcileIn) reconcileOut {
 		} else {
 			// Preserve user-owned fields and identity continuity.
 			k.CustomAlias, k.Notes, k.OS = prev.CustomAlias, prev.Notes, prev.OS
+			k.TrustStatus = prev.TrustStatus
+			if k.TrustStatus == "" {
+				k.TrustStatus = model.TrustUnknown
+			}
+			k.MergedInto = prev.MergedInto
 			k.FirstSeen, k.IsNew = prev.FirstSeen, prev.IsNew
 			if k.Type == model.TypeUnknown && prev.Type != model.TypeUnknown {
 				k.Type = prev.Type // never forget a classification because this scan saw fewer ports
