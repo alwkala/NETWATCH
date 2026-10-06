@@ -1,7 +1,7 @@
 import { Device, DeviceEvent, DeviceService } from '../types/device';
 import { NetworkInfo, ScanResult } from '../types/network';
 import { NetworkEvent } from '../types/events';
-import { AppSettings, DatabaseStats, MaintenanceResult } from '../types/settings';
+import { AppSettings, DatabaseStats, MaintenanceResult, PruneResult } from '../types/settings';
 import { initialMockDevices } from '../data/mock/devicesData';
 import { initialMockNetworkInfo } from '../data/mock/networkData';
 import { initialMockEvents } from '../data/mock/eventsData';
@@ -295,6 +295,14 @@ export class MockNetworkService implements NetworkService {
   public async integrityCheck(): Promise<MaintenanceResult> {
     await this.delay(200);
     return { success: true, message: 'Integrity check result: ok' };
+  }
+
+  public async pruneEvents(olderThanDays = 30): Promise<PruneResult> {
+    await this.delay(200);
+    const initialCount = this.events.length;
+    this.events = this.events.slice(0, Math.min(this.events.length, 3));
+    const deleted = initialCount - this.events.length;
+    return { deletedCount: deleted, olderThanDays };
   }
 
   public async clearHistory(): Promise<void> {

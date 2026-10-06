@@ -444,6 +444,36 @@ func (s *Store) ClearHistory(ctx context.Context) error {
 	return tx.Commit()
 }
 
+// PruneEvents removes audit log events and device_events older than olderThanDays.
+// Returns the total number of deleted rows.
+func (s *Store) PruneEvents(ctx context.Context, olderThanDays int) (int64, error) {
+	cutoff := time.Now().UTC().AddDate(0, 0, -olderThanDays)
+	cutoffMs := ms(cutoff)
+
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return 0, err
+	}
+	defer tx.Rollback()
+
+	res1, err := tx.ExecContext(ctx, `DELETE FROM events WHERE ts < ?`, cutoffMs)
+	if err != nil {
+		return 0, fmt.Errorf("prune events: %w", err)
+	}
+	n1, _ := res1.RowsAffected()
+
+	res2, err := tx.ExecContext(ctx, `DELETE FROM device_events WHERE ts < ?`, cutoffMs)
+	if err != nil {
+		return 0, fmt.Errorf("prune device_events: %w", err)
+	}
+	n2, _ := res2.RowsAffected()
+
+	if err := tx.Commit(); err != nil {
+		return 0, err
+	}
+	return n1 + n2, nil
+}
+
 const settingsMetaKey = "app_settings"
 
 // GetSettings retrieves persistent user settings or returns default settings if unset.

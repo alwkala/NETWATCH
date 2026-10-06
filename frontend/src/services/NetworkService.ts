@@ -1,7 +1,7 @@
 import { Device, DeviceEvent, DeviceService } from '../types/device';
 import { NetworkInfo, ScanResult } from '../types/network';
 import { NetworkEvent } from '../types/events';
-import { AppSettings, DatabaseStats, MaintenanceResult } from '../types/settings';
+import { AppSettings, DatabaseStats, MaintenanceResult, PruneResult } from '../types/settings';
 
 export type ScanProgressCallback = (progress: number, scanned: number, total: number, found: number) => void;
 
@@ -25,6 +25,7 @@ export interface NetworkService {
   getDatabaseStats?(): Promise<DatabaseStats>;
   vacuumDatabase?(): Promise<MaintenanceResult>;
   integrityCheck?(): Promise<MaintenanceResult>;
+  pruneEvents?(olderThanDays?: number): Promise<PruneResult>;
 
   // Optional host actions (real engine only)
   clearHistory?(): Promise<void>;

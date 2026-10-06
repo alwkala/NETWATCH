@@ -243,3 +243,48 @@ func TestStore_ClearHistory(t *testing.T) {
 		t.Fatalf("tables not emptied: %+v", stats)
 	}
 }
+
+func TestStore_PruneEvents(t *testing.T) {
+	ctx := context.Background()
+	st, err := store.Open(":memory:")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer st.Close()
+
+	oldTime := time.Now().UTC().AddDate(0, 0, -40)
+	recentTime := time.Now().UTC().AddDate(0, 0, -5)
+
+	ws := store.Writeset{
+		Devices: []store.Known{
+			{Device: model.Device{ID: "d1", MAC: "00:11:22:33:44:55", IP: "192.168.1.50", FirstSeen: oldTime, LastSeen: recentTime}},
+		},
+		Events: []model.NetworkEvent{
+			{ID: "e-old", Timestamp: oldTime, Type: model.EvNewDevice, Title: "old event"},
+			{ID: "e-recent", Timestamp: recentTime, Type: model.EvNewDevice, Title: "recent event"},
+		},
+		History: []store.HistoryRow{
+			{DeviceID: "d1", Time: oldTime, Type: model.HistDiscovered, Desc: "old history"},
+			{DeviceID: "d1", Time: recentTime, Type: model.HistOnline, Desc: "recent history"},
+		},
+	}
+	if err := st.Commit(ctx, ws); err != nil {
+		t.Fatal(err)
+	}
+
+	deleted, err := st.PruneEvents(ctx, 30)
+	if err != nil {
+		t.Fatalf("PruneEvents failed: %v", err)
+	}
+	if deleted != 2 {
+		t.Fatalf("expected 2 pruned items (1 event + 1 history), got %d", deleted)
+	}
+
+	evs, err := st.Events(ctx, 10)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(evs) != 1 || evs[0].Title != "recent event" {
+		t.Fatalf("expected only recent event left, got: %+v", evs)
+	}
+}

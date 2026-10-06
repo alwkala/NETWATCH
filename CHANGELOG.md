@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Native Windows Toast Notifications (M3)**:
+  - Implemented asynchronous, non-blocking WinRT desktop toast notifications using `ToastNotificationManager` via PowerShell 5.1 runtime in `internal/notifier/notifier_windows.go`.
+  - Added clean cross-platform stubs in `internal/notifier/notifier_other.go` for Linux and macOS.
+  - Wired notification triggers into `internal/engine/scan.go` respecting user preferences: `NotifyNewDevice`, `NotifyDeviceOffline`, and `NotifyNetworkChange`.
+  - Added test suite in `internal/notifier/notifier_test.go`.
+- **Windows Autostart via Registry (M3)**:
+  - Created `internal/autostart` package managing `HKCU\Software\Microsoft\Windows\CurrentVersion\Run` entries with `--minimized` launch arguments.
+  - Wired `LaunchAtStartup` preference directly into the REST API (`PUT /v1/settings`).
+  - Added test suite in `internal/autostart/autostart_test.go`.
+- **Desktop Single-Instance Lock & Minimized Launch (M3)**:
+  - Added `--minimized` / `-minimized` CLI argument handling via Wails `StartHidden: true` in `main.go`.
+  - Configured `SingleInstanceLock` in `main.go` and `RestoreWindow` in `app.go` to bring existing instances to the foreground when launched again.
+- **SQLite Event History Pruning & Retention (M3)**:
+  - Added `PruneEvents(ctx, olderThanDays)` in `internal/store/store.go` and `internal/engine/engine.go` to purge audit logs and device history.
+  - Exposed `POST /v1/data/prune` loopback endpoint in `internal/api/server.go`.
+  - Added unit test cases in `internal/store/store_test.go` and `internal/api/server_test.go`.
+  - Added "Prune Events (>30d)" maintenance action and removed preview badges in `frontend/src/pages/Settings.tsx`.
+
 ### Changed
 - **SQLite Engine Driver Upgrade**:
   - Upgraded `github.com/ncruces/go-sqlite3` from `v0.30.0` to `v0.35.6` (resolves critical Windows WAL mode data corruption under heavy concurrency, Issue #404).

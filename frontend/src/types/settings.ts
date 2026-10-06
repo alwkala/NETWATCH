@@ -21,3 +21,8 @@ export interface MaintenanceResult {
   success: boolean;
   message: string;
 }
+
+export interface PruneResult {
+  deletedCount: number;
+  olderThanDays: number;
+}

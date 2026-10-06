@@ -18,6 +18,7 @@ import (
 
 	"netwatch/internal/model"
 	"netwatch/internal/netenv"
+	"netwatch/internal/notifier"
 	"netwatch/internal/oui"
 	"netwatch/internal/store"
 )
@@ -34,19 +35,21 @@ var (
 const OfflineAfterMisses = 2
 
 type Options struct {
-	Env    netenv.Env
-	Store  *store.Store
-	OUI    *oui.DB
-	Logger *slog.Logger
-	Now    func() time.Time
+	Env      netenv.Env
+	Store    *store.Store
+	OUI      *oui.DB
+	Notifier notifier.Notifier
+	Logger   *slog.Logger
+	Now      func() time.Time
 }
 
 type Engine struct {
-	env netenv.Env
-	st  *store.Store
-	oui *oui.DB
-	log *slog.Logger
-	now func() time.Time
+	env      netenv.Env
+	st       *store.Store
+	oui      *oui.DB
+	notifier notifier.Notifier
+	log      *slog.Logger
+	now      func() time.Time
 
 	commitMu sync.Mutex // serializes inventory writes
 
@@ -71,10 +74,14 @@ func New(o Options) *Engine {
 	if o.OUI == nil {
 		o.OUI = oui.Default()
 	}
+	if o.Notifier == nil {
+		o.Notifier = notifier.New(o.Logger)
+	}
 	return &Engine{
 		env:            o.Env,
 		st:             o.Store,
 		oui:            o.OUI,
+		notifier:       o.Notifier,
 		log:            o.Logger,
 		now:            o.Now,
 		autoScanNotify: make(chan struct{}, 1),
@@ -387,6 +394,13 @@ func (e *Engine) Vacuum(ctx context.Context) error {
 // IntegrityCheck runs a PRAGMA integrity_check on the database.
 func (e *Engine) IntegrityCheck(ctx context.Context) (string, error) {
 	return e.st.IntegrityCheck(ctx)
+}
+
+// PruneEvents removes audit log events and device history older than the given days.
+func (e *Engine) PruneEvents(ctx context.Context, olderThanDays int) (int64, error) {
+	e.commitMu.Lock()
+	defer e.commitMu.Unlock()
+	return e.st.PruneEvents(ctx, olderThanDays)
 }
 
 // checkNetworkChange records a network_change event when the machine is on a

@@ -22,6 +22,7 @@ import (
 	"strings"
 	"time"
 
+	"netwatch/internal/autostart"
 	"netwatch/internal/engine"
 	"netwatch/internal/model"
 	"netwatch/internal/store"
@@ -36,6 +37,7 @@ type Config struct {
 	Version        string
 	DBPath         string
 	Logger         *slog.Logger
+	Autostart      autostart.Manager
 }
 
 type Server struct {
@@ -49,6 +51,9 @@ type Server struct {
 }
 
 func New(eng *engine.Engine, cfg Config) *Server {
+	if cfg.Autostart == nil {
+		cfg.Autostart = autostart.New()
+	}
 	s := &Server{eng: eng, cfg: cfg, origins: map[string]bool{}, log: cfg.Logger}
 	if s.log == nil {
 		s.log = slog.Default()
@@ -107,6 +112,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /v1/data/vacuum", s.vacuum)
 	mux.HandleFunc("POST /v1/data/integrity", s.integrity)
 	mux.HandleFunc("POST /v1/data/open", s.openData)
+	mux.HandleFunc("POST /v1/data/prune", s.pruneData)
 	mux.HandleFunc("DELETE /v1/data", s.clearData)
 	return s.protect(mux)
 }
@@ -436,6 +442,11 @@ func (s *Server) putSettings(w http.ResponseWriter, r *http.Request) {
 		s.fail(w, err)
 		return
 	}
+	if s.cfg.Autostart != nil {
+		if err := s.cfg.Autostart.Set(st.LaunchAtStartup); err != nil {
+			s.log.Warn("failed to update autostart setting", "error", err)
+		}
+	}
 	writeJSON(w, http.StatusOK, st)
 }
 
@@ -484,6 +495,28 @@ func (s *Server) clearData(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
+}
+
+func (s *Server) pruneData(w http.ResponseWriter, r *http.Request) {
+	var body struct {
+		OlderThanDays int `json:"olderThanDays"`
+	}
+	if err := decode(r, &body); err != nil {
+		s.fail(w, err)
+		return
+	}
+	if body.OlderThanDays < 1 {
+		body.OlderThanDays = 30
+	}
+	deleted, err := s.eng.PruneEvents(r.Context(), body.OlderThanDays)
+	if err != nil {
+		s.fail(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{
+		"deletedCount":  deleted,
+		"olderThanDays": body.OlderThanDays,
+	})
 }
 
 // ParseOrigin validates a user-supplied origin flag.

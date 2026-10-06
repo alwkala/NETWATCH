@@ -44,6 +44,15 @@ func main() {
 	} else {
 		defer cleanup()
 	}
+
+	startHidden := false
+	for _, arg := range os.Args[1:] {
+		if arg == "--minimized" || arg == "-minimized" {
+			startHidden = true
+			break
+		}
+	}
+
 	app := NewApp(token, logger)
 
 	err := wails.Run(&options.App{
@@ -52,11 +61,19 @@ func main() {
 		Height:           900,
 		MinWidth:         1180,
 		MinHeight:        720,
+		StartHidden:      startHidden,
 		AssetServer:      &assetserver.Options{Assets: assets},
 		BackgroundColour: &options.RGBA{R: 10, G: 10, B: 12, A: 255},
 		OnStartup:        app.startup,
 		OnShutdown:       func(ctx context.Context) { app.shutdown() },
 		Bind:             []interface{}{app},
+		SingleInstanceLock: &options.SingleInstanceLock{
+			UniqueId: "c18b76df-94bf-42f3-a261-netwatch-desktop",
+			OnSecondInstanceLaunch: func(secondInstanceData options.SecondInstanceData) {
+				logger.Info("second instance launched, restoring window")
+				app.RestoreWindow()
+			},
+		},
 		Windows: &windows.Options{
 			WebviewIsTransparent: false,
 			Theme:                windows.SystemDefault,

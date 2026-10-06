@@ -333,3 +333,31 @@ func TestAPI_ScanAndSSEStream(t *testing.T) {
 		t.Fatalf("expected SSE events in body, got: %s", body)
 	}
 }
+
+func TestAPI_PruneData(t *testing.T) {
+	srv, token, _ := setupTestServer(t)
+	handler := srv.Handler()
+
+	body := bytes.NewReader([]byte(`{"olderThanDays": 30}`))
+	req := httptest.NewRequest(http.MethodPost, "/v1/data/prune", body)
+	req.Header.Set("Authorization", "Bearer "+token)
+	req.Header.Set("Content-Type", "application/json")
+	req.Host = "127.0.0.1:8080"
+	rec := httptest.NewRecorder()
+
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("POST /v1/data/prune failed: %d, body=%s", rec.Code, rec.Body.String())
+	}
+	var res struct {
+		DeletedCount  int64 `json:"deletedCount"`
+		OlderThanDays int   `json:"olderThanDays"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &res); err != nil {
+		t.Fatalf("unmarshal prune response: %v", err)
+	}
+	if res.OlderThanDays != 30 {
+		t.Fatalf("expected olderThanDays=30, got %d", res.OlderThanDays)
+	}
+}

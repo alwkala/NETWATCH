@@ -54,21 +54,21 @@ NETWATCH is not an ephemeral scanner; it is a persistent local network intellige
 
 ---
 
-### 🔄 Milestone 3: Real Settings & Database Management (In Progress)
-- [ ] **Settings Persistence & Engine Binding**:
+### ✅ Milestone 3: Real Settings & Database Management (Completed)
+- [x] **Settings Persistence & Engine Binding**:
   - [x] Persist user preferences in SQLite (`GET /v1/settings`, `PUT /v1/settings`) instead of transient frontend state.
   - [x] Scheduled background scan execution at configurable intervals (`1m`, `5m`, `15m`, `1h`, `manual`).
-  - [ ] Native Windows toast notifications for new device discovery, device offline, and network change.
-  - [ ] System Tray integration: minimize-to-tray and start-minimized on login via HKCU Run key.
-- [ ] **Database Inspection & Maintenance Panel**:
+  - [x] Native Windows toast notifications for new device discovery, device offline, and network change (`internal/notifier`).
+  - [x] System Startup integration: start-minimized on login via HKCU Run registry (`internal/autostart`), `--minimized` argument flag, and single-instance restoration.
+- [x] **Database Inspection & Maintenance Panel**:
   - [x] Real-time SQLite statistics card: live database file size, total inventoried devices, event counts, and WAL mode indicators.
   - [x] Robust `Open Data Folder` integration with absolute path resolution (`%WINDIR%\explorer.exe` / fallback) and distinct error/success feedback states in UI.
   - [x] Database health and maintenance operations: `PRAGMA integrity_check` and `VACUUM` (compact database).
-  - [ ] Safe event log pruning and retention policy.
+  - [x] Safe event log pruning and retention policy (`POST /v1/data/prune`, `PruneEvents`).
 
 ---
 
-### 📅 Milestone 4: Enhanced Device Fingerprinting
+### 🔄 Milestone 4: Enhanced Device Fingerprinting (In Progress)
 - [ ] Multi-protocol device discovery: mDNS (Bonjour), NetBIOS, SSDP/UPnP.
 - [ ] DHCP lease inspection and Wi-Fi SSID discovery via WLAN API.
 - [ ] Probabilistic device classification with confidence score and explicit "Unknown" fallback.

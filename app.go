@@ -12,10 +12,12 @@ import (
 	"netwatch/internal/engine"
 	"netwatch/internal/netenv"
 	"netwatch/internal/store"
+	wruntime "github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
 // App owns the engine and the loopback API for the lifetime of the window.
 type App struct {
+	ctx     context.Context
 	token   string
 	log     *slog.Logger
 	st      *store.Store
@@ -36,8 +38,17 @@ type Connection struct {
 func (a *App) GetConnection() Connection { return Connection{BaseURL: a.baseURL, Token: a.token} }
 
 func (a *App) startup(ctx context.Context) {
+	a.ctx = ctx
 	if err := a.start(ctx); err != nil {
 		a.log.Error("engine failed to start", "err", err)
+	}
+}
+
+// RestoreWindow brings the application window to foreground and restores if minimized.
+func (a *App) RestoreWindow() {
+	if a.ctx != nil {
+		wruntime.WindowShow(a.ctx)
+		wruntime.WindowUnminimise(a.ctx)
 	}
 }
 

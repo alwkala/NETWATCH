@@ -1,7 +1,7 @@
 import { Device, DeviceEvent, DeviceService } from '../types/device';
 import { NetworkInfo, ScanResult } from '../types/network';
 import { NetworkEvent } from '../types/events';
-import { AppSettings, DatabaseStats, MaintenanceResult } from '../types/settings';
+import { AppSettings, DatabaseStats, MaintenanceResult, PruneResult } from '../types/settings';
 import { NetworkService, ScanProgressCallback } from './NetworkService';
 
 export interface EngineConnection {
@@ -213,6 +213,10 @@ export class HttpNetworkService implements NetworkService {
 
   async integrityCheck(): Promise<MaintenanceResult> {
     return this.request<MaintenanceResult>('POST', '/v1/data/integrity');
+  }
+
+  async pruneEvents(olderThanDays = 30): Promise<PruneResult> {
+    return this.request<PruneResult>('POST', '/v1/data/prune', { olderThanDays });
   }
 
   // Prototype-only helpers: meaningless against a real network.

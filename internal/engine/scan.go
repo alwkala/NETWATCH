@@ -357,7 +357,33 @@ func (e *Engine) doScan(ctx context.Context, st *scanState) (model.ScanResult, e
 	if err := e.st.Commit(ctx, out.WS); err != nil {
 		return model.ScanResult{}, fmt.Errorf("save scan: %w", err)
 	}
+	lastNetKey, _ := e.st.Meta(ctx, "last_net_key")
 	_ = e.st.SetMeta(ctx, "last_net_key", an.Key)
+
+	// Trigger notifications based on persistent user settings
+	if e.notifier != nil {
+		if settings, err := e.st.GetSettings(ctx); err == nil {
+			if settings.NotifyNetworkChange && lastNetKey != "" && lastNetKey != an.Key {
+				e.notifier.NotifyNetworkChange("Network Changed", fmt.Sprintf("Switched to %s (Gateway: %s)", ad.IP.Masked(), ad.Gateway))
+			}
+			for _, ev := range out.WS.Events {
+				if settings.NotifyNewDevice && ev.Type == model.EvNewDevice {
+					name := ev.DeviceName
+					if name == "" {
+						name = ev.IP
+					}
+					e.notifier.NotifyNewDevice("New Device Discovered", fmt.Sprintf("%s (%s) joined network", name, ev.IP))
+				} else if settings.NotifyDeviceOffline && ev.Type == model.EvOffline {
+					name := ev.DeviceName
+					if name == "" {
+						name = ev.IP
+					}
+					e.notifier.NotifyDeviceOffline("Device Offline", fmt.Sprintf("%s (%s) went offline", name, ev.IP))
+				}
+			}
+		}
+	}
+
 	return res, nil
 }
 

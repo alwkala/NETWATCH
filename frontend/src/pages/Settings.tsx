@@ -142,6 +142,22 @@ export const Settings: React.FC = () => {
     }
   };
 
+  const handlePrune = async () => {
+    setIsBusy(true);
+    try {
+      const res = await service.pruneEvents?.(30);
+      if (service.getDatabaseStats) {
+        const stats = await service.getDatabaseStats();
+        setDbStats(stats);
+      }
+      showFeedback('success', `Pruned ${res?.deletedCount ?? 0} events older than 30 days.`);
+    } catch (e) {
+      showFeedback('error', e instanceof Error ? e.message : 'Event pruning failed.');
+    } finally {
+      setIsBusy(false);
+    }
+  };
+
   const formatBytes = (bytes: number) => {
     if (!bytes || bytes <= 0) return '0 B';
     if (bytes < 1024) return `${bytes} B`;
@@ -215,9 +231,8 @@ export const Settings: React.FC = () => {
         <div className="space-y-3 text-xs">
           <div className="flex items-center justify-between py-1">
             <div>
-              <div className="font-semibold text-neutral-800 dark:text-neutral-200 flex items-center gap-2">
-                <span>Launch at startup</span>
-                <span className="text-[9px] uppercase font-mono px-1.5 py-0.2 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 font-semibold">Coming in M3</span>
+              <div className="font-semibold text-neutral-800 dark:text-neutral-200">
+                Launch at startup
               </div>
               <div className="text-neutral-400 text-[11px]">
                 Start NetWatch in system tray on Windows boot via HKCU Run registry
@@ -267,9 +282,8 @@ export const Settings: React.FC = () => {
 
           <div className="flex items-center justify-between py-1 border-t border-neutral-100 dark:border-neutral-800">
             <div>
-              <div className="font-semibold text-neutral-800 dark:text-neutral-200 flex items-center gap-2">
-                <span>Start minimized</span>
-                <span className="text-[9px] uppercase font-mono px-1.5 py-0.2 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 font-semibold">Coming in M3</span>
+              <div className="font-semibold text-neutral-800 dark:text-neutral-200">
+                Start minimized
               </div>
               <div className="text-neutral-400 text-[11px]">
                 Do not show main window on initial launch
@@ -396,13 +410,8 @@ export const Settings: React.FC = () => {
 
       {/* NOTIFICATIONS (Section 22) */}
       <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg p-5 space-y-4 shadow-xs transition-colors">
-        <div className="flex items-center justify-between">
-          <div className="text-xs font-bold text-neutral-900 dark:text-neutral-100 uppercase tracking-wider">
-            Windows Notifications
-          </div>
-          <span className="text-[10px] uppercase font-mono px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 font-semibold">
-            Coming in M3
-          </span>
+        <div className="text-xs font-bold text-neutral-900 dark:text-neutral-100 uppercase tracking-wider">
+          Windows Notifications
         </div>
 
         <div className="space-y-3 text-xs">
@@ -587,6 +596,16 @@ export const Settings: React.FC = () => {
           >
             <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
             <span>Check Integrity</span>
+          </button>
+
+          <button
+            onClick={handlePrune}
+            disabled={isBusy}
+            className="px-3.5 py-1.5 bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-300 rounded text-xs font-medium border border-neutral-300 dark:border-neutral-700 transition-colors inline-flex items-center gap-1.5 disabled:opacity-50"
+            title="Purge event history older than 30 days"
+          >
+            <RotateCw className="w-3.5 h-3.5" />
+            <span>Prune Events (&gt;30d)</span>
           </button>
 
           <button

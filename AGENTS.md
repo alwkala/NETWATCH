@@ -177,13 +177,14 @@ cd frontend && npx tsc --noEmit && npx vite build
 
 - [x] **M1 – Windows Native Validation**: Verified on real Windows LAN (`192.168.1.0/24`), unprivileged ICMP & ARP, rotating logger (`netwatch.log`), and standalone GUI build (`build/bin/netwatch.exe`).
 - [x] **M2 – CI, Security & Governance Baseline**: Multi-OS CI with SHA-pinned actions, GitHub Rulesets on `main` and release tags, Dependabot grouped updates, STRIDE threat model (`THREAT_MODEL.md`), incident response playbook (`INCIDENT_RESPONSE.md`), and unit test suites for API loopback security and Store persistence.
-- [ ] **M3 – Real Settings & Database Management (In Progress)**:
+- [x] **M3 – Real Settings & Database Management (Completed)**:
   - [x] SQLite settings persistence (`GET/PUT /v1/settings`).
   - [x] Background auto-scan engine scheduler (`1m`, `5m`, `15m`, `1h`, `manual`).
   - [x] Real-time SQLite statistics card, VACUUM compaction, and integrity checks.
-  - [ ] Native Windows toast notifications for new devices, offline events, and network changes.
-  - [ ] System Tray integration: minimize-to-tray and start-minimized via HKCU Run key.
-- [ ] **M4 – Better Identity**: mDNS (Bonjour), NetBIOS, SSDP/UPnP, DHCP lease info, Wi-Fi SSID via WLAN API, confidence scoring with "Unknown" fallback.
+  - [x] Native Windows toast notifications for new devices, offline events, and network changes (`internal/notifier`).
+  - [x] System startup integration: launch at startup via HKCU Run key (`internal/autostart`), `--minimized` launch flag, and single-instance restoration.
+  - [x] Event history retention and pruning (`POST /v1/data/prune`).
+- [ ] **M4 – Better Identity (In Progress)**: mDNS (Bonjour), NetBIOS, SSDP/UPnP, DHCP lease info, Wi-Fi SSID via WLAN API, confidence scoring with "Unknown" fallback.
 - [ ] **M5 – Diagnostics**: Hop-by-hop traceroute, reverse DNS latency benchmark, per-device latency history charts.
 - [ ] **M6 – QA & Data Lifecycle**: Playwright E2E smoke suite, export to JSON/CSV, event log retention policy.
 - [ ] **M7 – Release & Code Signing**: Windows MSI/NSIS installer, SignPath.io Authenticode signing, opt-in updates.
