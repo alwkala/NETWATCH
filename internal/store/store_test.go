@@ -359,3 +359,62 @@ func TestStore_MergeDevicesAndTrustStatus(t *testing.T) {
 		t.Fatalf("expected alias 02:AA:BB:CC:DD:EE -> dev-target, got %q", aliases["02:AA:BB:CC:DD:EE"])
 	}
 }
+
+func TestStore_EvidenceAndNetworkContext(t *testing.T) {
+	ctx := context.Background()
+	st, err := store.Open(":memory:")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer st.Close()
+
+	now := time.Now().UTC()
+	ws := store.Writeset{
+		Devices: []store.Known{
+			{Device: model.Device{ID: "dev-test", MAC: "00:11:22:33:44:55", IP: "192.168.1.50", FirstSeen: now, LastSeen: now}},
+		},
+	}
+	if err := st.Commit(ctx, ws); err != nil {
+		t.Fatal(err)
+	}
+
+	// 1. Evidence persistence
+	evItems := []model.DiscoveryEvidence{
+		{Source: model.SourceMDNS, Key: "hostname", Value: "MyHost.local", ObservedAt: now, LastSeen: now},
+		{Source: model.SourceSSDP, Key: "st", Value: "urn:schemas-upnp-org:device:MediaRenderer:1", ObservedAt: now, LastSeen: now},
+	}
+	if err := st.SaveEvidence(ctx, "dev-test", evItems); err != nil {
+		t.Fatalf("SaveEvidence failed: %v", err)
+	}
+
+	retrieved, err := st.GetDeviceEvidence(ctx, "dev-test")
+	if err != nil {
+		t.Fatalf("GetDeviceEvidence failed: %v", err)
+	}
+	if len(retrieved) != 2 {
+		t.Fatalf("expected 2 evidence items, got %d", len(retrieved))
+	}
+
+	// 2. Network Context persistence
+	nc := model.NetworkContext{
+		Interface:  "Wi-Fi",
+		SSID:       "HomeNet-5G",
+		BSSID:      "aa:bb:cc:dd:ee:ff",
+		Gateway:    "192.168.1.1",
+		Subnet:     "192.168.1.0/24",
+		IPv4:       "192.168.1.100",
+		ObservedAt: now,
+	}
+	if err := st.SaveNetworkContext(ctx, nc); err != nil {
+		t.Fatalf("SaveNetworkContext failed: %v", err)
+	}
+
+	latestNC, err := st.GetLatestNetworkContext(ctx)
+	if err != nil {
+		t.Fatalf("GetLatestNetworkContext failed: %v", err)
+	}
+	if latestNC == nil || latestNC.SSID != "HomeNet-5G" {
+		t.Fatalf("unexpected latest network context: %+v", latestNC)
+	}
+}
+

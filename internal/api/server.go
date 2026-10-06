@@ -100,6 +100,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("PATCH /v1/devices/{id}", s.patchDevice)
 	mux.HandleFunc("POST /v1/devices/{id}/merge", s.mergeDevice)
 	mux.HandleFunc("GET /v1/devices/{id}/history", s.history)
+	mux.HandleFunc("GET /v1/devices/{id}/evidence", s.deviceEvidence)
 	mux.HandleFunc("POST /v1/devices/{id}/ports", s.devicePorts)
 	mux.HandleFunc("GET /v1/events", s.events)
 	mux.HandleFunc("POST /v1/scans", s.startScan)
@@ -300,6 +301,15 @@ func (s *Server) history(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, h)
+}
+
+func (s *Server) deviceEvidence(w http.ResponseWriter, r *http.Request) {
+	evs, err := s.eng.DeviceEvidence(r.Context(), r.PathValue("id"))
+	if err != nil {
+		s.fail(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, evs)
 }
 
 func (s *Server) devicePorts(w http.ResponseWriter, r *http.Request) {

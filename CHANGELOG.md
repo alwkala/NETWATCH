@@ -8,6 +8,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Multi-Protocol Discovery & Evidence Bus (M4)**:
+  - Implemented `DiscoveryProbe` interface and unified `DiscoveryScope` contract in `internal/engine/probe.go` and `internal/model/evidence.go`.
+  - Added NetBIOS Name Service (NBNS) directed UDP 137 query prober (`internal/netenv/nbns.go`) extracting RFC 1002 name table and 6-byte Unit ID (hardware MAC address).
+  - Added NBNS Unit ID vs. ARP MAC correlation: flags MAC mismatches as diagnostic conflicts rather than performing blind merges.
+  - Implemented SSDP / UPnP multicast discovery prober (`internal/netenv/ssdp.go`) over `239.255.255.250:1900` with strict Zero-Fetch Location invariant (records Location string only, never dials or fetches HTTP XML).
+  - Implemented multi-pass mDNS / DNS-SD observer and prober (`internal/netenv/mdns.go`) over `224.0.0.251:5353` with defense against compression pointer loops, oversized packets, and memory poisoning.
+  - Added protocol-aware Destination Policy (`internal/netenv/policy.go`): enforces `IsAllowedDiscoveryDestination` at the socket layer, strictly rejecting loopback for discovery probes and preventing public WAN egress.
+  - Implemented Identity Resolver (`internal/engine/resolver.go`): normalizes raw evidence across all probes, verifies MAC integrity, correlates observed hostnames, and determines canonical display names.
+  - Upgraded fingerprint engine (`internal/fingerprint/rules.go`): evaluates authentic observable evidence rules (e.g. `mDNS:_ipp._tcp` -> Printer, `SSDP:MediaRenderer` -> TV) with zero speculative confidence percentages.
+  - Added SQLite schema migration v3 (`internal/store/store.go`): creates `evidence` table and `network_contexts` table for persistent intelligence and context tracking.
+  - Added Identification Evidence panel in Device Details modal (`frontend/src/pages/DeviceDetails.tsx`) displaying protocol badges, structured mDNS/SSDP/NBNS/ARP evidence, and copy-only non-clickable SSDP Location.
 - **Randomized MAC Detection & Identity Unification (M4)**:
   - Added IEEE 802 Locally Administered Address (LAA) bit detection (`mac[0] & 0x02 != 0`) and `isRandomizedMac` property in wire models and SQLite schema migration v2.
   - Added "Private MAC" badge across Device Table and Device Details drawer with tooltip explaining private Wi-Fi addresses.

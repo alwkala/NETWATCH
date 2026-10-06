@@ -301,7 +301,7 @@ func (e *Engine) doScan(ctx context.Context, st *scanState) (model.ScanResult, e
 	}
 	sort.Slice(obs, func(i, j int) bool { return obs[i].IP.Less(obs[j].IP) })
 
-	// ---- 5. enrichment: hostnames (+ ports on Full scans) ------------------
+	// ---- 5. Multi-Protocol Evidence Enrichment (NBNS, SSDP, mDNS, rDNS) ----
 	selfHost, _ := os.Hostname()
 	var enriched atomic.Int64
 	nObs := len(obs)
@@ -309,11 +309,79 @@ func (e *Engine) doScan(ctx context.Context, st *scanState) (model.ScanResult, e
 	if kind == "quick" {
 		rLookupTimeout = 200 * time.Millisecond
 	}
+
+	targetHosts := make([]netip.Addr, len(obs))
+	for i, o := range obs {
+		targetHosts[i] = o.IP
+	}
+	discScope := model.DiscoveryScope{
+		Subnet: ad.IP.Masked(),
+		Hosts:  targetHosts,
+		Iface:  ad.Name,
+	}
+
+	var rawEvidence []model.DiscoveryEvidence
+	var revMu sync.Mutex
+	var probeWG sync.WaitGroup
+
+	// Launch multi-protocol unprivileged probes concurrently
+	nbnsProbe := netenv.NewNBNSProbe()
+	ssdpProbe := netenv.NewSSDPProbe()
+	mdnsProbe := netenv.NewMDNSProbe()
+
+	probeWG.Add(1)
+	go func() {
+		defer probeWG.Done()
+		evs, err := nbnsProbe.Discover(ctx, discScope)
+		if err == nil && len(evs) > 0 {
+			revMu.Lock()
+			rawEvidence = append(rawEvidence, evs...)
+			revMu.Unlock()
+		}
+	}()
+
+	probeWG.Add(1)
+	go func() {
+		defer probeWG.Done()
+		evs, err := ssdpProbe.Discover(ctx, discScope)
+		if err == nil && len(evs) > 0 {
+			revMu.Lock()
+			rawEvidence = append(rawEvidence, evs...)
+			revMu.Unlock()
+		}
+	}()
+
+	probeWG.Add(1)
+	go func() {
+		defer probeWG.Done()
+		evs, err := mdnsProbe.Discover(ctx, discScope)
+		if err == nil && len(evs) > 0 {
+			revMu.Lock()
+			rawEvidence = append(rawEvidence, evs...)
+			revMu.Unlock()
+		}
+	}()
+
+	nowUTC := time.Now().UTC()
 	forEach(ctx, obs, 24, func(o *observation) {
 		if o.IsSelf {
 			o.Hostname = fingerprint.SanitizeLANString(selfHost)
 		} else {
-			o.Hostname = fingerprint.SanitizeLANString(e.env.ReverseLookup(ctx, o.IP, rLookupTimeout))
+			rdnsName := fingerprint.SanitizeLANString(e.env.ReverseLookup(ctx, o.IP, rLookupTimeout))
+			o.Hostname = rdnsName
+			if rdnsName != "" {
+				revMu.Lock()
+				rawEvidence = append(rawEvidence, model.DiscoveryEvidence{
+					Source:     model.SourceDNS,
+					IP:         o.IP,
+					MAC:        o.MAC,
+					Key:        "hostname",
+					Value:      rdnsName,
+					ObservedAt: nowUTC,
+					LastSeen:   nowUTC,
+				})
+				revMu.Unlock()
+			}
 		}
 		if kind == "full" {
 			o.Ports, o.PortScanned = e.probePorts(ctx, o.IP), true
@@ -321,8 +389,23 @@ func (e *Engine) doScan(ctx context.Context, st *scanState) (model.ScanResult, e
 		n := int(enriched.Add(1))
 		report(80 + n*19/max(nObs, 1))
 	})
+	probeWG.Wait()
+
 	if err := ctx.Err(); err != nil {
 		return model.ScanResult{}, err
+	}
+
+	// Correlate raw evidence, resolve naming and MAC conflicts
+	aliases, _ := e.st.MACAliases(ctx)
+	plain := make([]observation, len(obs))
+	for i, o := range obs {
+		plain[i] = *o
+	}
+	evidenceBags := ResolveEvidence(plain, rawEvidence, aliases)
+	for _, o := range obs {
+		if bag := evidenceBags[normalizeMAC(o.MAC)]; bag != nil && bag.CanonicalName != "" {
+			o.Hostname = bag.CanonicalName
+		}
 	}
 
 	// ---- 6. diff against the inventory and persist -------------------------
@@ -332,15 +415,15 @@ func (e *Engine) doScan(ctx context.Context, st *scanState) (model.ScanResult, e
 	if err != nil {
 		return model.ScanResult{}, err
 	}
-	aliases, _ := e.st.MACAliases(ctx)
-	plain := make([]observation, len(obs))
-	for i, o := range obs {
-		plain[i] = *o
-	}
 	out := reconcile(reconcileIn{
-		NetKey: an.Key, Now: e.now(), Gateway: ad.Gateway,
-		Known: known, Obs: plain, Vendor: vendorFunc(e.oui),
-		Aliases: aliases,
+		NetKey:       an.Key,
+		Now:          e.now(),
+		Gateway:      ad.Gateway,
+		Known:        known,
+		Obs:          plain,
+		Vendor:       vendorFunc(e.oui),
+		Aliases:      aliases,
+		EvidenceBags: evidenceBags,
 	})
 	dur := e.now().Sub(started)
 	res := model.ScanResult{
@@ -359,6 +442,14 @@ func (e *Engine) doScan(ctx context.Context, st *scanState) (model.ScanResult, e
 	if err := e.st.Commit(ctx, out.WS); err != nil {
 		return model.ScanResult{}, fmt.Errorf("save scan: %w", err)
 	}
+
+	// Persist detailed multi-protocol discovery evidence per device
+	for devID, bag := range out.DeviceBags {
+		if bag != nil && len(bag.Current) > 0 {
+			_ = e.st.SaveEvidence(ctx, devID, bag.Current)
+		}
+	}
+
 	lastNetKey, _ := e.st.Meta(ctx, "last_net_key")
 	_ = e.st.SetMeta(ctx, "last_net_key", an.Key)
 

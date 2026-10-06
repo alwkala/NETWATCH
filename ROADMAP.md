@@ -78,7 +78,7 @@ No feature or diagnostic tool enters NETWATCH unless it passes three architectur
 
 ---
 
-### 🔄 Milestone 4: Enhanced Device Fingerprinting, Identity & Trust (In Progress)
+### ✅ Milestone 4: Multi-Protocol Discovery, Evidence & Trust (Completed)
 - [x] **Randomized MAC Detection & Composite Identity**:
   - [x] IEEE 802 Locally Administered Address (LAA) bit detection (`mac[0] & 0x02 != 0`).
   - [x] Distinct UI badge for private/randomized Wi-Fi addresses (iOS, Android, Windows 10/11) with explanatory tooltip.
@@ -86,11 +86,15 @@ No feature or diagnostic tool enters NETWATCH unless it passes three architectur
 - [x] **Trust Status & Asset Allowlist**:
   - [x] Device trust classification: `Known` (approved asset), `Guest` (authorized temporary device), and `Unknown` (default for newly discovered assets).
   - [x] User-editable custom device aliases (with Arabic and UTF-8 support up to 80 characters), custom device types, and notes.
-- [ ] **Multi-Protocol Discovery (Unprivileged)**:
-  - [ ] Passive/unprivileged multicast DNS (mDNS / Bonjour) `.local` PTR/SRV inspection.
-  - [ ] NetBIOS Name Service (NBNS) query prober on UDP 137 for Windows hostnames.
-  - [ ] SSDP / UPnP device description listener.
-  - [ ] Wi-Fi SSID discovery via native OS WLAN API.
+- [x] **Multi-Protocol Discovery & Evidence Bus (Unprivileged)**:
+  - [x] Passive/multicast DNS (mDNS / DNS-SD RFC 6762/6763) `.local` service discovery and IP correlation (`224.0.0.251:5353`).
+  - [x] NetBIOS Name Service (NBNS RFC 1002) directed UDP 137 query prober with 6-byte Unit ID MAC correlation.
+  - [x] SSDP / UPnP M-SEARCH multicast listener (`239.255.255.250:1900`) with Zero-Fetch Location invariant.
+  - [x] Wi-Fi SSID / Network Context separation (`network_contexts` table, semantic normalization).
+  - [x] Protocol-aware Destination Policy (`IsAllowedDiscoveryDestination`) enforcing zero-egress at socket layer.
+  - [x] Evidence Bus & Identity Resolver: deterministic Canonical Name precedence, conflict detection, and authentic reason rules.
+  - [x] SQLite schema migration v3 (`evidence` and `network_contexts` tables).
+  - [x] Identification Evidence UI panel in Device Details with protocol badges and non-clickable copy-only SSDP location.
 - [x] **Security & Untrusted Input Hardening**:
   - [x] Strict hostname sanitization pipeline: strip ANSI escapes, control characters, and Unicode Bidi override runes.
   - [x] Automated CI Zero-Egress gate: AST parser test verifying no external `net/http` client dialers exist in Go code and no remote CDN imports in frontend assets.

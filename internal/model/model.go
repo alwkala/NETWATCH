@@ -87,8 +87,9 @@ type Device struct {
 	LatencyMs       *int            `json:"latencyMs,omitempty"`
 	OS              string          `json:"os,omitempty"`
 	Notes           string          `json:"notes,omitempty"`
-	Services        []DeviceService `json:"services,omitempty"`
-	History         []DeviceEvent   `json:"history,omitempty"`
+	Services        []DeviceService     `json:"services,omitempty"`
+	History         []DeviceEvent       `json:"history,omitempty"`
+	Evidence        []DiscoveryEvidence `json:"evidence,omitempty"`
 }
 
 type NetworkEvent struct {

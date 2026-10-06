@@ -30,6 +30,19 @@ export interface DeviceEvent {
   description: string;
 }
 
+export type DiscoverySource = 'ARP' | 'ICMP' | 'TCP' | 'NBNS' | 'mDNS' | 'SSDP' | 'rDNS';
+
+export interface DiscoveryEvidence {
+  id?: number;
+  source: DiscoverySource;
+  ip: string;
+  mac?: string;
+  key: string;
+  value: string;
+  observedAt: string;
+  lastSeen?: string;
+}
+
 export interface Device {
   id: string;
   name: string;
@@ -53,4 +66,5 @@ export interface Device {
   notes?: string;
   services?: DeviceService[];
   history?: DeviceEvent[];
+  evidence?: DiscoveryEvidence[];
 }

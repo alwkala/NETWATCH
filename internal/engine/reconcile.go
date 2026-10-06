@@ -27,19 +27,21 @@ type observation struct {
 }
 
 type reconcileIn struct {
-	NetKey  string
-	Now     time.Time
-	Gateway netip.Addr
-	Known   []store.Known
-	Obs     []observation
-	Vendor  func(mac string) string
-	Aliases map[string]string // uppercase MAC -> canonical device ID
+	NetKey       string
+	Now          time.Time
+	Gateway      netip.Addr
+	Known        []store.Known
+	Obs          []observation
+	Vendor       func(mac string) string
+	Aliases      map[string]string // uppercase MAC -> canonical device ID
+	EvidenceBags map[string]*model.EvidenceBag
 }
 
 type reconcileOut struct {
-	WS    store.Writeset
-	Found int
-	New   int
+	WS         store.Writeset
+	Found      int
+	New        int
+	DeviceBags map[string]*model.EvidenceBag
 }
 
 // reconcile diffs a scan against the stored inventory. It is pure: no I/O,
@@ -50,6 +52,7 @@ func reconcile(in reconcileIn) reconcileOut {
 		known[in.Known[i].ID] = &in.Known[i]
 	}
 	var out reconcileOut
+	out.DeviceBags = make(map[string]*model.EvidenceBag)
 	seen := map[string]bool{}
 	ws := &out.WS
 	ws.Services = map[string][]model.DeviceService{}
@@ -81,16 +84,33 @@ func reconcile(in reconcileIn) reconcileOut {
 				ports = append(ports, sv.Port)
 			}
 		}
+
+		var bag *model.EvidenceBag
+		if in.EvidenceBags != nil {
+			normMAC := normalizeMAC(o.MAC)
+			bag = in.EvidenceBags[normMAC]
+			if bag != nil {
+				out.DeviceBags[id] = bag
+			}
+		}
+
+		cls := fingerprint.ClassifyBag(bag, vendor, o.IP == in.Gateway, ports)
+		typ := cls.Type
+		if o.IsSelf && typ == model.TypeUnknown {
+			typ = model.TypeComputer
+		}
+
 		ev := fingerprint.Evidence{
 			Vendor: vendor, Hostname: o.Hostname, MAC: o.MAC, IP: o.IP.String(),
 			IsGateway: o.IP == in.Gateway, OpenPorts: ports,
 		}
-		typ := fingerprint.Classify(ev)
-		if o.IsSelf && typ == model.TypeUnknown {
-			typ = model.TypeComputer
+		var name string
+		if bag != nil && bag.CanonicalName != "" && !strings.Contains(bag.CanonicalName, ".") {
+			name = bag.CanonicalName
+		} else {
+			name = fingerprint.Name(ev, typ)
 		}
-		name := fingerprint.Name(ev, typ)
-		if o.IsSelf {
+		if o.IsSelf && !strings.Contains(name, "This PC") {
 			name += " (This PC)"
 		}
 		var lat *int

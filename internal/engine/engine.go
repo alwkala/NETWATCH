@@ -302,7 +302,21 @@ func (e *Engine) Devices(ctx context.Context) ([]model.Device, error) {
 }
 
 func (e *Engine) Device(ctx context.Context, id string) (*model.Device, error) {
-	return e.st.GetDevice(ctx, id)
+	d, err := e.st.GetDevice(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	if evs, err := e.st.GetDeviceEvidence(ctx, id); err == nil {
+		d.Evidence = evs
+	}
+	return d, nil
+}
+
+func (e *Engine) DeviceEvidence(ctx context.Context, id string) ([]model.DiscoveryEvidence, error) {
+	if _, err := e.st.GetDevice(ctx, id); err != nil {
+		return nil, err
+	}
+	return e.st.GetDeviceEvidence(ctx, id)
 }
 
 func (e *Engine) History(ctx context.Context, id string) ([]model.DeviceEvent, error) {

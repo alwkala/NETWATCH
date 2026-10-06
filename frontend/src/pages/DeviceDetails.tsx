@@ -16,7 +16,9 @@ import {
   Layers,
   Power,
   GitMerge,
-  UserCheck
+  UserCheck,
+  Copy,
+  AlertTriangle
 } from 'lucide-react';
 import { TrustStatus } from '../types/device';
 
@@ -46,6 +48,7 @@ export const DeviceDetails: React.FC = () => {
   const [isMerging, setIsMerging] = useState(false);
   const [targetMergeId, setTargetMergeId] = useState('');
   const [isMergeSubmitting, setIsMergeSubmitting] = useState(false);
+  const [copiedLocation, setCopiedLocation] = useState(false);
 
   if (!selectedDevice) {
     return (
@@ -60,6 +63,37 @@ export const DeviceDetails: React.FC = () => {
       </div>
     );
   }
+
+  const evidence = selectedDevice.evidence || [];
+  const mdnsItems = evidence.filter(e => e.source === 'mDNS');
+  const ssdpItems = evidence.filter(e => e.source === 'SSDP');
+  const nbnsItems = evidence.filter(e => e.source === 'NBNS');
+
+  const mdnsHost = mdnsItems.find(e => e.key === 'hostname')?.value;
+  const mdnsServices = mdnsItems.filter(e => e.key === 'service').map(e => e.value);
+
+  const ssdpST = ssdpItems.find(e => e.key === 'st')?.value;
+  const ssdpServer = ssdpItems.find(e => e.key === 'server')?.value;
+  const ssdpLocation = ssdpItems.find(e => e.key === 'location')?.value;
+
+  const nbnsName = nbnsItems.find(e => e.key === 'hostname')?.value;
+  const nbnsUnitID = nbnsItems.find(e => e.key === 'unit_id')?.value;
+  const nbnsMACMatch = nbnsItems.find(e => e.key === 'mac_match')?.value;
+
+  const primaryTitle = selectedDevice.customAlias || selectedDevice.name;
+  const otherNames = Array.from(
+    new Set(
+      evidence
+        .filter(e => e.key === 'hostname' && e.value && e.value !== primaryTitle)
+        .map(e => e.value)
+    )
+  );
+
+  const handleCopyLocation = (url: string) => {
+    navigator.clipboard.writeText(url);
+    setCopiedLocation(true);
+    setTimeout(() => setCopiedLocation(false), 2000);
+  };
 
   const handleStartEdit = () => {
     setCustomAlias(selectedDevice.customAlias || selectedDevice.name);
@@ -199,6 +233,17 @@ export const DeviceDetails: React.FC = () => {
                 <span>·</span>
                 <span className="font-sans text-neutral-600 dark:text-neutral-400">{selectedDevice.vendor}</span>
               </div>
+
+              {otherNames.length > 0 && (
+                <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-neutral-500 mt-1">
+                  <span>Other observed names:</span>
+                  {otherNames.map((n, i) => (
+                    <span key={i} className="font-mono text-neutral-700 dark:text-neutral-300 bg-neutral-100 dark:bg-neutral-800 px-1.5 py-0.5 rounded text-[10px] border border-neutral-200/60 dark:border-neutral-700/60">
+                      {n}
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 
@@ -589,6 +634,178 @@ export const DeviceDetails: React.FC = () => {
               </table>
             </div>
           )}
+        </div>
+      </div>
+
+      {/* Identification Evidence (Multi-Protocol Discovery) */}
+      <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-md p-4 space-y-4 transition-colors">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-neutral-100 dark:border-neutral-800 pb-2">
+          <div className="flex items-center gap-1.5 text-xs font-bold text-neutral-900 dark:text-neutral-100">
+            <Shield className="w-3.5 h-3.5 text-emerald-500" />
+            <span>Identification Evidence</span>
+            <span className="text-[10px] font-normal text-neutral-400">· Multi-Protocol Intelligence</span>
+          </div>
+          {/* Protocol Badges Summary */}
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {['ARP', 'ICMP', 'NBNS', 'mDNS', 'SSDP'].map(proto => {
+              const hasProto = proto === 'ARP' || proto === 'ICMP'
+                ? true
+                : (evidence.some(e => e.source === proto));
+              return (
+                <span
+                  key={proto}
+                  className={`text-[10px] font-mono px-1.5 py-0.5 rounded border transition-colors ${
+                    hasProto
+                      ? 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/80 font-medium'
+                      : 'bg-neutral-50 dark:bg-neutral-800/50 text-neutral-400 dark:text-neutral-500 border-neutral-200/60 dark:border-neutral-700/60 opacity-60'
+                  }`}
+                >
+                  {proto}
+                </span>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Structured Evidence Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+          {/* mDNS Section */}
+          <div className="p-3 bg-neutral-50 dark:bg-neutral-800/40 rounded border border-neutral-100 dark:border-neutral-800 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="font-semibold text-neutral-800 dark:text-neutral-200">Multicast DNS (mDNS)</span>
+              <span className="text-[10px] font-mono text-neutral-400">224.0.0.251:5353</span>
+            </div>
+            {mdnsItems.length === 0 ? (
+              <p className="text-[11px] text-neutral-400 italic">No mDNS records advertised</p>
+            ) : (
+              <div className="space-y-1.5 font-mono text-[11px]">
+                {mdnsHost && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-neutral-500 font-sans">Hostname:</span>
+                    <span className="text-neutral-800 dark:text-neutral-200">{mdnsHost}</span>
+                  </div>
+                )}
+                {mdnsServices.length > 0 && (
+                  <div>
+                    <span className="text-neutral-500 font-sans block mb-1">Advertised Services:</span>
+                    <div className="flex flex-wrap gap-1">
+                      {mdnsServices.map((s, i) => (
+                        <span key={i} className="px-1.5 py-0.5 bg-neutral-200/70 dark:bg-neutral-700 text-neutral-800 dark:text-neutral-200 rounded text-[10px]">
+                          {s}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* SSDP Section */}
+          <div className="p-3 bg-neutral-50 dark:bg-neutral-800/40 rounded border border-neutral-100 dark:border-neutral-800 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="font-semibold text-neutral-800 dark:text-neutral-200">SSDP / UPnP</span>
+              <span className="text-[10px] font-mono text-neutral-400">239.255.255.250:1900</span>
+            </div>
+            {ssdpItems.length === 0 ? (
+              <p className="text-[11px] text-neutral-400 italic">No UPnP announcements observed</p>
+            ) : (
+              <div className="space-y-1.5 font-mono text-[11px]">
+                {ssdpST && (
+                  <div className="flex justify-between gap-2">
+                    <span className="text-neutral-500 font-sans shrink-0">Target:</span>
+                    <span className="text-neutral-800 dark:text-neutral-200 truncate" title={ssdpST}>{ssdpST}</span>
+                  </div>
+                )}
+                {ssdpServer && (
+                  <div className="flex justify-between gap-2">
+                    <span className="text-neutral-500 font-sans shrink-0">Server:</span>
+                    <span className="text-neutral-800 dark:text-neutral-200 truncate" title={ssdpServer}>{ssdpServer}</span>
+                  </div>
+                )}
+                {ssdpLocation && (
+                  <div className="pt-1.5 border-t border-neutral-200/60 dark:border-neutral-700/60">
+                    <div className="flex items-center justify-between text-[10px]">
+                      <span className="text-neutral-500 font-sans">Location URL:</span>
+                      <span className="px-1.5 py-0.5 rounded bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800/60 font-sans text-[10px]">
+                        Recorded — not fetched
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between gap-2 mt-1 bg-white dark:bg-neutral-900 p-1.5 rounded border border-neutral-200/80 dark:border-neutral-700/80">
+                      <span className="text-[11px] text-neutral-700 dark:text-neutral-300 truncate select-all">{ssdpLocation}</span>
+                      <button
+                        onClick={() => handleCopyLocation(ssdpLocation)}
+                        className="text-[10px] text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-200 shrink-0 p-1 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded transition-colors"
+                        title="Copy Location URL"
+                      >
+                        {copiedLocation ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* NBNS Section */}
+          <div className="p-3 bg-neutral-50 dark:bg-neutral-800/40 rounded border border-neutral-100 dark:border-neutral-800 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="font-semibold text-neutral-800 dark:text-neutral-200">NetBIOS Name Service</span>
+              <span className="text-[10px] font-mono text-neutral-400">UDP 137</span>
+            </div>
+            {nbnsItems.length === 0 ? (
+              <p className="text-[11px] text-neutral-400 italic">No NetBIOS response</p>
+            ) : (
+              <div className="space-y-1.5 font-mono text-[11px]">
+                {nbnsName && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-neutral-500 font-sans">Computer Name:</span>
+                    <span className="text-neutral-800 dark:text-neutral-200">{nbnsName}</span>
+                  </div>
+                )}
+                {nbnsUnitID && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-neutral-500 font-sans">Unit ID (MAC):</span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-neutral-800 dark:text-neutral-200">{nbnsUnitID}</span>
+                      {nbnsMACMatch === 'true' && (
+                        <span className="inline-flex items-center text-emerald-600 dark:text-emerald-400 text-[10px] gap-0.5 font-sans font-medium" title="Corroborates ARP MAC">
+                          <Check className="w-3 h-3" /> Match
+                        </span>
+                      )}
+                      {nbnsMACMatch === 'mismatch' && (
+                        <span className="inline-flex items-center text-amber-600 dark:text-amber-400 text-[10px] gap-0.5 font-sans font-bold" title="Does not match ARP MAC">
+                          <AlertTriangle className="w-3 h-3" /> Mismatch
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* ARP / Link Layer Section */}
+          <div className="p-3 bg-neutral-50 dark:bg-neutral-800/40 rounded border border-neutral-100 dark:border-neutral-800 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="font-semibold text-neutral-800 dark:text-neutral-200">ARP & Layer 2</span>
+              <span className="text-[10px] font-mono text-neutral-400">Neighbor Cache</span>
+            </div>
+            <div className="space-y-1.5 font-mono text-[11px]">
+              <div className="flex justify-between">
+                <span className="text-neutral-500 font-sans">Hardware MAC:</span>
+                <span className="text-neutral-800 dark:text-neutral-200">{selectedDevice.mac}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-neutral-500 font-sans">IEEE Vendor:</span>
+                <span className="text-neutral-800 dark:text-neutral-200 font-sans">{selectedDevice.vendor || 'Unknown'}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-neutral-500 font-sans">Inventory State:</span>
+                <span className="text-neutral-800 dark:text-neutral-200 capitalize font-sans">{selectedDevice.status}</span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 

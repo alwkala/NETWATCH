@@ -165,6 +165,29 @@ var migrations = []string{
 		created_at          INTEGER NOT NULL
 	);
 	CREATE INDEX IF NOT EXISTS idx_mac_aliases_canonical ON device_mac_aliases(canonical_device_id);`,
+
+	// v3: Discovery Evidence and Network Contexts
+	`CREATE TABLE IF NOT EXISTS evidence (
+		id          INTEGER PRIMARY KEY AUTOINCREMENT,
+		device_id   TEXT NOT NULL REFERENCES devices(id) ON DELETE CASCADE,
+		source      TEXT NOT NULL,
+		key         TEXT NOT NULL,
+		value       TEXT NOT NULL,
+		observed_at INTEGER NOT NULL,
+		last_seen   INTEGER NOT NULL
+	);
+	CREATE INDEX IF NOT EXISTS idx_evidence_device ON evidence(device_id, observed_at DESC);
+	CREATE TABLE IF NOT EXISTS network_contexts (
+		id          INTEGER PRIMARY KEY AUTOINCREMENT,
+		interface   TEXT NOT NULL,
+		ssid        TEXT NOT NULL,
+		bssid       TEXT NOT NULL,
+		gateway     TEXT NOT NULL,
+		subnet      TEXT NOT NULL,
+		ipv4        TEXT NOT NULL,
+		observed_at INTEGER NOT NULL
+	);
+	CREATE INDEX IF NOT EXISTS idx_network_contexts_ts ON network_contexts(observed_at DESC);`,
 }
 
 func (s *Store) migrate(ctx context.Context) error {
@@ -667,3 +690,103 @@ func (s *Store) MergeDevices(ctx context.Context, targetID, sourceID string) err
 
 	return tx.Commit()
 }
+
+// SaveEvidence records or updates evidence items for a given device.
+func (s *Store) SaveEvidence(ctx context.Context, deviceID string, items []model.DiscoveryEvidence) error {
+	if len(items) == 0 || deviceID == "" {
+		return nil
+	}
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	stmt, err := tx.PrepareContext(ctx, `
+		INSERT INTO evidence(device_id, source, key, value, observed_at, last_seen)
+		VALUES (?, ?, ?, ?, ?, ?)
+	`)
+	if err != nil {
+		return err
+	}
+	defer stmt.Close()
+
+	for _, it := range items {
+		obsMs := ms(it.ObservedAt)
+		lastMs := ms(it.LastSeen)
+		if lastMs == 0 {
+			lastMs = obsMs
+		}
+		if _, err := stmt.ExecContext(ctx, deviceID, string(it.Source), it.Key, it.Value, obsMs, lastMs); err != nil {
+			return err
+		}
+	}
+	return tx.Commit()
+}
+
+// GetDeviceEvidence retrieves all recorded evidence for a device ordered newest first.
+func (s *Store) GetDeviceEvidence(ctx context.Context, deviceID string) ([]model.DiscoveryEvidence, error) {
+	rows, err := s.db.QueryContext(ctx, `
+		SELECT id, source, key, value, observed_at, last_seen
+		FROM evidence
+		WHERE device_id = ?
+		ORDER BY observed_at DESC
+	`, deviceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var list []model.DiscoveryEvidence
+	for rows.Next() {
+		var id uint64
+		var src, k, v string
+		var obsMs, lastMs int64
+		if err := rows.Scan(&id, &src, &k, &v, &obsMs, &lastMs); err != nil {
+			return nil, err
+		}
+		list = append(list, model.DiscoveryEvidence{
+			ID:         id,
+			Source:     model.DiscoverySource(src),
+			Key:        k,
+			Value:      v,
+			ObservedAt: fromMs(obsMs),
+			LastSeen:   fromMs(lastMs),
+		})
+	}
+	return list, rows.Err()
+}
+
+// SaveNetworkContext records an observed wireless network and interface snapshot.
+func (s *Store) SaveNetworkContext(ctx context.Context, nc model.NetworkContext) error {
+	obsMs := ms(nc.ObservedAt)
+	if obsMs == 0 {
+		obsMs = ms(time.Now().UTC())
+	}
+	_, err := s.db.ExecContext(ctx, `
+		INSERT INTO network_contexts(interface, ssid, bssid, gateway, subnet, ipv4, observed_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?)
+	`, nc.Interface, nc.SSID, nc.BSSID, nc.Gateway, nc.Subnet, nc.IPv4, obsMs)
+	return err
+}
+
+// GetLatestNetworkContext returns the most recent network context snapshot.
+func (s *Store) GetLatestNetworkContext(ctx context.Context) (*model.NetworkContext, error) {
+	row := s.db.QueryRowContext(ctx, `
+		SELECT id, interface, ssid, bssid, gateway, subnet, ipv4, observed_at
+		FROM network_contexts
+		ORDER BY observed_at DESC
+		LIMIT 1
+	`)
+	var nc model.NetworkContext
+	var obsMs int64
+	if err := row.Scan(&nc.ID, &nc.Interface, &nc.SSID, &nc.BSSID, &nc.Gateway, &nc.Subnet, &nc.IPv4, &obsMs); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	nc.ObservedAt = fromMs(obsMs)
+	return &nc, nil
+}
+
