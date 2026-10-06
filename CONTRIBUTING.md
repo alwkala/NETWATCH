@@ -1,6 +1,5 @@
 # Contributing to NETWATCH
 
-<!-- /* Pre-emit critique: P5 H5 E5 S5 R5 V5 D5 */ -->
 
 Thank you for your interest in contributing to NETWATCH! We welcome contributions that align with our core design invariants.
 

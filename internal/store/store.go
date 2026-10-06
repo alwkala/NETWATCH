@@ -479,13 +479,20 @@ func (s *Store) Stats(ctx context.Context, dbPath string) (model.DatabaseStats, 
 			res.FileSizeBytes = fi.Size()
 		}
 	}
-	_ = s.db.QueryRowContext(ctx, `SELECT count(*) FROM devices`).Scan(&res.DeviceCount)
-	_ = s.db.QueryRowContext(ctx, `SELECT count(*) FROM events`).Scan(&res.EventCount)
-	_ = s.db.QueryRowContext(ctx, `SELECT count(*) FROM scans`).Scan(&res.ScanCount)
-	var jMode string
-	if err := s.db.QueryRowContext(ctx, `PRAGMA journal_mode`).Scan(&jMode); err == nil {
-		res.WALEnabled = strings.EqualFold(jMode, "wal")
+	if err := s.db.QueryRowContext(ctx, `SELECT count(*) FROM devices`).Scan(&res.DeviceCount); err != nil {
+		return res, fmt.Errorf("count devices: %w", err)
 	}
+	if err := s.db.QueryRowContext(ctx, `SELECT count(*) FROM events`).Scan(&res.EventCount); err != nil {
+		return res, fmt.Errorf("count events: %w", err)
+	}
+	if err := s.db.QueryRowContext(ctx, `SELECT count(*) FROM scans`).Scan(&res.ScanCount); err != nil {
+		return res, fmt.Errorf("count scans: %w", err)
+	}
+	var jMode string
+	if err := s.db.QueryRowContext(ctx, `PRAGMA journal_mode`).Scan(&jMode); err != nil {
+		return res, fmt.Errorf("query journal_mode: %w", err)
+	}
+	res.WALEnabled = strings.EqualFold(jMode, "wal")
 	return res, nil
 }
 
@@ -504,4 +511,3 @@ func (s *Store) IntegrityCheck(ctx context.Context) (string, error) {
 	}
 	return res, nil
 }
-

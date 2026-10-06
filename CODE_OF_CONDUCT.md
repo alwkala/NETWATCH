@@ -1,6 +1,5 @@
 # Contributor Covenant Code of Conduct
 
-<!-- /* Pre-emit critique: P5 H5 E5 S5 R5 V5 D5 */ -->
 
 ## Our Pledge
 

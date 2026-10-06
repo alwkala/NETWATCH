@@ -85,11 +85,10 @@ NETWATCH sweeps subnets in milliseconds, fingerprints hardware locally, and main
 ---
 
 ### 📅 Milestone 6: Quality Assurance, Hardening & Data Portability
-- [ ] **Comprehensive Test Suites (Post-Feature Stability)**:
-  - Unit test suite for finalized `internal/store` (SQLite transactions, settings table, event pruning).
-  - Unit test suite for `internal/api` (Bearer auth, Origin/Host blocking, SSE stream).
-  - Unit tests for `internal/netenv` parsing helpers across platforms.
-  - Playwright end-to-end smoke test suite against `netwatchd` and production UI.
+- [ ] **End-to-End & Integration Testing**:
+  - Playwright end-to-end smoke test suite against `netwatchd` and production desktop UI.
+  - Unit tests for `internal/netenv` adapter parsing helpers across Linux and Windows.
+  - End-to-end regression tests for new M4/M5 device fingerprinting and diagnostic probes.
 - [ ] **Data Portability & Retention**:
   - Export device inventory and event history to JSON and CSV formats.
   - Configurable data retention policies (auto-purge events older than X days).

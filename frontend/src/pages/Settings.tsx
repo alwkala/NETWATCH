@@ -215,11 +215,12 @@ export const Settings: React.FC = () => {
         <div className="space-y-3 text-xs">
           <div className="flex items-center justify-between py-1">
             <div>
-              <div className="font-semibold text-neutral-800 dark:text-neutral-200">
-                Launch at startup
+              <div className="font-semibold text-neutral-800 dark:text-neutral-200 flex items-center gap-2">
+                <span>Launch at startup</span>
+                <span className="text-[9px] uppercase font-mono px-1.5 py-0.2 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 font-semibold">Coming in M3</span>
               </div>
               <div className="text-neutral-400 text-[11px]">
-                Start NetWatch minimized in system tray on Windows boot
+                Start NetWatch in system tray on Windows boot via HKCU Run registry
               </div>
             </div>
             <button
@@ -242,8 +243,9 @@ export const Settings: React.FC = () => {
 
           <div className="flex items-center justify-between py-1 border-t border-neutral-100 dark:border-neutral-800">
             <div>
-              <div className="font-semibold text-neutral-800 dark:text-neutral-200">
-                Minimize to tray
+              <div className="font-semibold text-neutral-800 dark:text-neutral-200 flex items-center gap-2">
+                <span>Minimize to tray</span>
+                <span className="text-[9px] uppercase font-mono px-1.5 py-0.2 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 font-semibold">Coming in M3</span>
               </div>
               <div className="text-neutral-400 text-[11px]">
                 Closing the window will minimize to system notification area
@@ -265,8 +267,9 @@ export const Settings: React.FC = () => {
 
           <div className="flex items-center justify-between py-1 border-t border-neutral-100 dark:border-neutral-800">
             <div>
-              <div className="font-semibold text-neutral-800 dark:text-neutral-200">
-                Start minimized
+              <div className="font-semibold text-neutral-800 dark:text-neutral-200 flex items-center gap-2">
+                <span>Start minimized</span>
+                <span className="text-[9px] uppercase font-mono px-1.5 py-0.2 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 font-semibold">Coming in M3</span>
               </div>
               <div className="text-neutral-400 text-[11px]">
                 Do not show main window on initial launch
@@ -384,8 +387,8 @@ export const Settings: React.FC = () => {
               <option value="1m">1 minute</option>
               <option value="5m">5 minutes (Default)</option>
               <option value="15m">15 minutes</option>
-              <option value="30m">30 minutes</option>
               <option value="1h">1 hour</option>
+              <option value="manual">Manual only (Disabled)</option>
             </select>
           </div>
         </div>
@@ -393,8 +396,13 @@ export const Settings: React.FC = () => {
 
       {/* NOTIFICATIONS (Section 22) */}
       <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg p-5 space-y-4 shadow-xs transition-colors">
-        <div className="text-xs font-bold text-neutral-900 dark:text-neutral-100 uppercase tracking-wider">
-          Windows Notifications
+        <div className="flex items-center justify-between">
+          <div className="text-xs font-bold text-neutral-900 dark:text-neutral-100 uppercase tracking-wider">
+            Windows Notifications
+          </div>
+          <span className="text-[10px] uppercase font-mono px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 font-semibold">
+            Coming in M3
+          </span>
         </div>
 
         <div className="space-y-3 text-xs">

@@ -84,5 +84,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Clarified packaging status: standalone portable `.exe` active, installer scheduled for M7.
   - Added security advisory on `-token` flag visibility in local process tables for `netwatchd`.
   - Updated `THREAT_MODEL.md` Repudiation mitigation to explicitly describe user-controlled local ledger clearing.
-
-
+- **Engine Auto-Scan Scheduling & Settings Validation**:
+  - Implemented background auto-scan scheduler worker in `internal/engine/engine.go` with dynamic interval reconfiguration and non-blocking trigger execution.
+  - Added strict validation in `PUT /v1/settings` enforcing allowed scan intervals (`1m`, `5m`, `15m`, `1h`, `manual`) with 400 Bad Request rejection for invalid payloads.
+  - Enhanced error handling in `Store.Stats` by validating and propagating query scan errors instead of discarding them.
+  - Tuned Quick scan timeouts (ICMP 450ms, TCP 250ms) to prevent sleeping Wi-Fi devices from prematurely flapping offline.
+  - Consolidated duplicate folder opener logic into `internal/appdata` with platform-separated implementations (`openfolder_windows.go` and `openfolder_other.go`).
+  - Added SSE stream test suite in `internal/api/server_test.go` verifying real-time progress events.
+  - Added transparent "Coming in M3" badges to staged system integration toggles in `Settings.tsx`.
+  - Replaced competitor matrix in `README.md` with verifiable Design Principles & Architectural Guarantees.
+  - Formatted all Go sources with `gofmt -w`.

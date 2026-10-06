@@ -1,6 +1,6 @@
 //go:build windows
 
-package main
+package appdata
 
 import (
 	"os"
@@ -9,8 +9,8 @@ import (
 	"syscall"
 )
 
-// openFolder shows dir in Windows Explorer without flashing a console window.
-func openFolder(dir string) error {
+// OpenFolder opens dir in Windows Explorer without flashing a console window.
+func OpenFolder(dir string) error {
 	explorer := "explorer.exe"
 	if winDir := os.Getenv("WINDIR"); winDir != "" {
 		p := filepath.Join(winDir, "explorer.exe")

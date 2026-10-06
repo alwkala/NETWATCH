@@ -139,7 +139,7 @@ func (e *Engine) doScan(ctx context.Context, st *scanState) (model.ScanResult, e
 	}
 	st.update(func(s *ScanSnapshot) { s.Total = total })
 
-	pingTimeout := 200 * time.Millisecond
+	pingTimeout := 450 * time.Millisecond
 	if kind == "full" {
 		pingTimeout = 900 * time.Millisecond
 	}
@@ -225,7 +225,7 @@ func (e *Engine) doScan(ctx context.Context, st *scanState) (model.ScanResult, e
 		tcpTimeout := 400 * time.Millisecond
 		if kind == "quick" {
 			tcpPorts = []int{80, 445}
-			tcpTimeout = 150 * time.Millisecond
+			tcpTimeout = 250 * time.Millisecond
 			if maxTCP > 24 {
 				// Always include gateway if it was missed.
 				limited := make([]netip.Addr, 0, 25)

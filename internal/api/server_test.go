@@ -272,4 +272,64 @@ func TestAPI_SettingsAndDatabaseEndpoints(t *testing.T) {
 	if rec.Code != http.StatusNoContent && rec.Code != http.StatusOK {
 		t.Fatalf("DELETE /v1/data failed: %d", rec.Code)
 	}
+
+	// 8. Invalid PUT /v1/settings returns 400 Bad Request
+	st.ScanInterval = "invalid_interval_value"
+	badJSON, _ := json.Marshal(st)
+	rec = doReq(http.MethodPut, "/v1/settings", badJSON)
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400 Bad Request for invalid scanInterval, got %d", rec.Code)
+	}
+}
+
+func TestAPI_ScanAndSSEStream(t *testing.T) {
+	srv, token, _ := setupTestServer(t)
+	handler := srv.Handler()
+
+	// 1. Start a scan
+	startReq := httptest.NewRequest(http.MethodPost, "/v1/scans", bytes.NewReader([]byte(`{"type":"quick"}`)))
+	startReq.Header.Set("Content-Type", "application/json")
+	startReq.Header.Set("Authorization", "Bearer "+token)
+	startReq.Host = "127.0.0.1:8080"
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, startReq)
+
+	if rec.Code != http.StatusAccepted && rec.Code != http.StatusOK {
+		t.Fatalf("POST /v1/scans failed: %d body=%s", rec.Code, rec.Body.String())
+	}
+	var startRes struct {
+		ScanID string `json:"scanId"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &startRes); err != nil || startRes.ScanID == "" {
+		t.Fatalf("unexpected start scan response: %s", rec.Body.String())
+	}
+
+	// 2. Query scan snapshot
+	snapReq := httptest.NewRequest(http.MethodGet, "/v1/scans/"+startRes.ScanID, nil)
+	snapReq.Header.Set("Authorization", "Bearer "+token)
+	snapReq.Host = "127.0.0.1:8080"
+	rec = httptest.NewRecorder()
+	handler.ServeHTTP(rec, snapReq)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("GET /v1/scans/{id} failed: %d", rec.Code)
+	}
+
+	// 3. Connect to SSE stream
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	streamReq := httptest.NewRequest(http.MethodGet, "/v1/scans/"+startRes.ScanID+"/stream", nil).WithContext(ctx)
+	streamReq.Header.Set("Authorization", "Bearer "+token)
+	streamReq.Host = "127.0.0.1:8080"
+	rec = httptest.NewRecorder()
+
+	handler.ServeHTTP(rec, streamReq)
+
+	if ct := rec.Header().Get("Content-Type"); !strings.Contains(ct, "text/event-stream") {
+		t.Fatalf("expected text/event-stream content type, got %s", ct)
+	}
+	if body := rec.Body.String(); !strings.Contains(body, "event: ") {
+		t.Fatalf("expected SSE events in body, got: %s", body)
+	}
 }

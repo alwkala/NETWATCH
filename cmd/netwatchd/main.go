@@ -87,7 +87,7 @@ func run(log *slog.Logger, port int, token, dataDir, origins string) error {
 
 	srv := api.New(eng, api.Config{Token: token, AllowedOrigins: extra, Version: version, DBPath: appdata.DBPath(dataDir), Logger: log})
 	srv.OpenDataFolder = func() error {
-		return openFolder(dataDir)
+		return appdata.OpenFolder(dataDir)
 	}
 	ln, err := api.ListenLoopback(port)
 	if err != nil {

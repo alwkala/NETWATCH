@@ -425,6 +425,13 @@ func (s *Server) putSettings(w http.ResponseWriter, r *http.Request) {
 		s.fail(w, err)
 		return
 	}
+	switch st.ScanInterval {
+	case "1m", "5m", "15m", "1h", "manual":
+		// valid
+	default:
+		writeErr(w, http.StatusBadRequest, "invalid_settings", "scanInterval must be one of: 1m, 5m, 15m, 1h, manual")
+		return
+	}
 	if err := s.eng.UpdateSettings(r.Context(), st); err != nil {
 		s.fail(w, err)
 		return

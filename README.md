@@ -12,7 +12,7 @@
 [![Privacy](https://img.shields.io/badge/Privacy-100%25_Local--First-success.svg)](#privacy-invariants)
 
 <a href="#downloads--platform-support"><b>Download</b></a> •
-<a href="#why-netwatch-comparison-matrix"><b>Why NETWATCH?</b></a> •
+<a href="#design-principles--architectural-guarantees"><b>Design Principles</b></a> •
 <a href="ROADMAP.md"><b>Roadmap</b></a> •
 <a href="THREAT_MODEL.md"><b>Threat Model</b></a> •
 <a href="CONTRIBUTING.md"><b>Contributing</b></a> •
@@ -29,17 +29,14 @@
 
 ---
 
-## Why NETWATCH? (Comparison Matrix)
+## Design Principles & Architectural Guarantees
 
-| Capability | NETWATCH | Fing Desktop | Advanced IP Scanner | Sniffnet |
-|:---|:---:|:---:|:---:|:---:|
-| **Local-First (No Account / No Cloud)** | ✅ **100% Offline** | ❌ Requires Cloud Account | ⚠️ Local but closed-source | ✅ 100% Offline |
-| **Persistent Device Inventory & Timeline** | ✅ **Yes (SQLite)** | ✅ Yes (Cloud sync) | ❌ Transient list only | ❌ Session traffic only |
-| **Subnet Sweep Architecture** | ⚡ **Concurrent ARP/ICMP/TCP** | ⚠️ Moderate | ⚡ Fast | N/A (Passive capture) |
-| **Flap-Resistant Reconciliation** | ✅ **Yes (`misses=2`)** | ⚠️ Partial | ❌ No | N/A |
-| **Modern Desktop UI** | ✅ **React 19 + Wails** | ⚠️ Electron / Paywalled | ❌ Legacy Win32 UI | ✅ Modern Iced GUI |
-| **Unprivileged Execution (No Driver/Npcap)** | ✅ **Yes (`iphlpapi.dll`)** | ⚠️ Requires Npcap/Admin | ⚠️ Requires UAC / Npcap | ⚠️ Requires WinPcap/Npcap |
-| **Open Source & Dual Licensed** | ✅ **MIT / Apache 2.0** | ❌ Proprietary | ❌ Proprietary | ✅ MIT / Apache 2.0 |
+NETWATCH is engineered around four uncompromising design invariants:
+
+1. **100% Offline & Sovereign**: Network data never leaves your computer. No user account, no cloud relay, no telemetry, and zero external API calls.
+2. **Local Hardware Fingerprinting**: MAC vendor lookups use an embedded, offline IEEE OUI database (`internal/oui/ieee-oui.txt`). Your hardware addresses are never transmitted externally.
+3. **Unprivileged Execution**: Interacts directly with native user-mode OS APIs (`iphlpapi.dll` on Windows). Does not require administrator privileges, UAC elevation, or third-party packet capture drivers (such as WinPcap or Npcap).
+4. **Flap-Resistant Reconciliation**: Devices are marked offline only after consecutive missed sweeps (`misses = 2`), preventing false disconnect alerts when Wi-Fi devices enter low-power sleep states.
 
 ---
 

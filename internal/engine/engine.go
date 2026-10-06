@@ -57,7 +57,8 @@ type Engine struct {
 	scanMu sync.Mutex
 	scan   *scanState
 
-	mon monitor
+	mon            monitor
+	autoScanNotify chan struct{}
 }
 
 func New(o Options) *Engine {
@@ -70,12 +71,20 @@ func New(o Options) *Engine {
 	if o.OUI == nil {
 		o.OUI = oui.Default()
 	}
-	return &Engine{env: o.Env, st: o.Store, oui: o.OUI, log: o.Logger, now: o.Now}
+	return &Engine{
+		env:            o.Env,
+		st:             o.Store,
+		oui:            o.OUI,
+		log:            o.Logger,
+		now:            o.Now,
+		autoScanNotify: make(chan struct{}, 1),
+	}
 }
 
-// Start launches background work (gateway latency monitor). It stops when ctx ends.
+// Start launches background work (gateway latency monitor & auto-scan worker). It stops when ctx ends.
 func (e *Engine) Start(ctx context.Context) {
 	go e.runMonitor(ctx)
+	go e.runAutoScan(ctx)
 	if err := e.checkNetworkChange(ctx); err != nil {
 		e.log.Warn("network change check", "err", err)
 	}
@@ -295,9 +304,72 @@ func (e *Engine) Settings(ctx context.Context) (model.Settings, error) {
 	return e.st.GetSettings(ctx)
 }
 
-// UpdateSettings updates the persistent user settings.
+// UpdateSettings updates the persistent user settings and reconfigures the auto-scan schedule.
 func (e *Engine) UpdateSettings(ctx context.Context, st model.Settings) error {
-	return e.st.SaveSettings(ctx, st)
+	if err := e.st.SaveSettings(ctx, st); err != nil {
+		return err
+	}
+	select {
+	case e.autoScanNotify <- struct{}{}:
+	default:
+	}
+	return nil
+}
+
+func (e *Engine) runAutoScan(ctx context.Context) {
+	parseInterval := func(s string) time.Duration {
+		switch s {
+		case "1m":
+			return 1 * time.Minute
+		case "5m":
+			return 5 * time.Minute
+		case "15m":
+			return 15 * time.Minute
+		case "1h":
+			return 1 * time.Hour
+		default:
+			return 0
+		}
+	}
+
+	timer := time.NewTimer(5 * time.Minute)
+	defer timer.Stop()
+
+	for {
+		st, err := e.st.GetSettings(ctx)
+		var d time.Duration
+		if err == nil && st.AutoDiscovery && st.ScanInterval != "manual" {
+			d = parseInterval(st.ScanInterval)
+		}
+		if d <= 0 {
+			// Inactive or manual: wait until settings change or context ends
+			select {
+			case <-ctx.Done():
+				return
+			case <-e.autoScanNotify:
+				continue
+			}
+		}
+
+		timer.Reset(d)
+		select {
+		case <-ctx.Done():
+			return
+		case <-e.autoScanNotify:
+			if !timer.Stop() {
+				select {
+				case <-timer.C:
+				default:
+				}
+			}
+			continue
+		case <-timer.C:
+			e.log.Info("executing scheduled auto-scan")
+			if _, err := e.StartScan("quick"); err != nil && !errors.Is(err, ErrScanRunning) {
+				e.log.Warn("scheduled auto-scan skipped", "err", err)
+			}
+		}
+	}
 }
 
 // DatabaseStats returns file size, records count, and WAL status.

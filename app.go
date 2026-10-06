@@ -6,10 +6,6 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"os"
-	"os/exec"
-	"path/filepath"
-	"syscall"
 
 	"netwatch/internal/api"
 	"netwatch/internal/appdata"
@@ -64,18 +60,7 @@ func (a *App) start(parent context.Context) error {
 
 	srv := api.New(eng, api.Config{Token: a.token, Version: version, DBPath: appdata.DBPath(a.dataDir), Logger: a.log})
 	srv.OpenDataFolder = func() error {
-		explorer := "explorer.exe"
-		if winDir := os.Getenv("WINDIR"); winDir != "" {
-			p := filepath.Join(winDir, "explorer.exe")
-			if _, err := os.Stat(p); err == nil {
-				explorer = p
-			}
-		} else if _, err := os.Stat(`C:\Windows\explorer.exe`); err == nil {
-			explorer = `C:\Windows\explorer.exe`
-		}
-		cmd := exec.Command(explorer, a.dataDir)
-		cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
-		return cmd.Start()
+		return appdata.OpenFolder(a.dataDir)
 	}
 	ln, err := api.ListenLoopback(0)
 	if err != nil {

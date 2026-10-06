@@ -1,6 +1,6 @@
 //go:build !windows
 
-package main
+package appdata
 
 import (
 	"errors"
@@ -8,8 +8,8 @@ import (
 	"runtime"
 )
 
-// openFolder uses the platform opener where one exists (macOS open, Linux xdg-open).
-func openFolder(dir string) error {
+// OpenFolder uses the platform opener where one exists (macOS open, Linux xdg-open).
+func OpenFolder(dir string) error {
 	switch runtime.GOOS {
 	case "darwin":
 		return exec.Command("open", dir).Start()
