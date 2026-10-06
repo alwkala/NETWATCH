@@ -1,96 +1,198 @@
-# AGENTS.md — NETWATCH handoff for AI coding agents
+# AGENTS.md — NETWATCH Engineering & AI Agent Harness
 
-Read this file fully before changing anything. Then read `README.md`, `internal/model/model.go`
-(the wire contract) and `frontend/src/services/NetworkService.ts` (the UI contract).
+> **Read this file fully before introducing changes.**  
+> Then inspect `README.md`, `internal/model/model.go` (the Go wire contract), and `frontend/src/types/` (the TypeScript UI contract).
 
-## 1. What this product is
-NETWATCH is a **Local Network Intelligence & Device Inventory** suite (local-first, privacy-first desktop network intelligence & discovery utility):
+---
+
+## 1. Product Mission & Core Invariants
+
+NETWATCH is a **Local Network Intelligence & Device Inventory** desktop application for Windows, Linux, and macOS:  
 **"Know Every Device on Your LAN. Without the Cloud Watching."**
-Instant LAN discovery, historical reconciliation, and persistent device tracking — 100% offline, zero cloud, zero telemetry.
-Architecture is cross-platform (Windows native Wails host primary, headless daemon in `cmd/netwatchd` for Linux dev/CLI, macOS on roadmap).
 
-Non-negotiable principles:
-- Network data never leaves the machine. No account, cloud, telemetry, analytics, or external API calls.
-  The UI must make **zero external requests** (fonts are bundled; keep it that way — no CDN, no Google Fonts).
-- OUI/vendor lookup is local (`internal/oui/ieee-oui.txt`, embedded). Never send MAC addresses anywhere.
-- Never invent data: unknown stays "Unknown"; no fake health scores, threat detection or AI features.
-  Unimplemented features are hidden or labelled "Coming later".
-- Scanning is active (ARP/ICMP/TCP on the LAN). Only private/link-local/CGNAT IPv4 targets are allowed.
-- Formal security: see `THREAT_MODEL.md` (STRIDE analysis) and `INCIDENT_RESPONSE.md`.
+### Beyond Ephemeral Scanning: The Asset Ledger
+Traditional tools (*Advanced IP Scanner*, *Angry IP Scanner*) are ephemeral utilities that discard all data upon exit. In NETWATCH:
+- **Scanning is merely the ingestion sensor**, not the end product.
+- **The Core Product is the Local Asset Ledger & Reconciliation Engine**: An embedded SQLite database tracking the lifecycle of every network asset across hours, days, and months.
+- **State Reconciliation**: Answers not just *"What is online now?"*, but *"What changed? Who joined? Who departed? When did an IP drift?"*
+- **Flap Resistance**: Devices transition offline only after consecutive missed sweeps (`OfflineAfterMisses = 2`), preventing false alerts when low-power Wi-Fi devices sleep.
 
-## 2. Architecture
+### Non-Negotiable Architectural Principles
+1. **Zero External Egress**: Network topology, IP mappings, and MAC addresses never leave the host system. No accounts, no cloud relays, no telemetry, no analytics.
+2. **Air-Gapped Hardware Fingerprinting**: MAC vendor lookups use an embedded, local IEEE OUI database (`internal/oui/ieee-oui.txt`). Hardware addresses are never sent to external APIs.
+3. **Bundled Static Typography**: UI fonts (*Plus Jakarta Sans* and *JetBrains Mono*) are bundled locally via `@fontsource`. No Google Fonts or external CDNs.
+4. **Authentic Data Only**: Unknown fields remain labeled `Unknown`. Never invent speculative threat scores, simulated health percentages, or hallucinated AI tags.
+5. **Private IPv4 Scoping Only**: Scanning is restricted strictly to RFC 1918 private subnets, link-local, and CGNAT IPv4 targets.
+6. **Sidebar Identity Constraint**: The Sidebar brand mark and header text (`NETWATCH / Desktop Edition`) in `frontend/src/components/layout/Sidebar.tsx` must remain untouched.
+
+---
+
+## 2. High-Level Architecture & Component Map
+
 ```
-React UI (frontend/)  ──HTTP + SSE──▶  Go engine  ──▶  SQLite (store)
-  Wails/WebView2 host                  127.0.0.1:<random>, bearer token per session
-```
-| Path | Role |
-|---|---|
-| `internal/model` | Wire types. JSON names mirror `frontend/src/types/*.ts`; timestamps are RFC 3339 UTC |
-| `internal/netenv` | **All OS access** behind the `Env` interface. `env_windows.go` (iphlpapi/ARP/ICMP/adapters), `env_linux.go` (dev), `env_other.go`. `Portable` holds cross-platform parts (WoL, TCP probe, rDNS) |
-| `internal/engine` | Scan pipeline, reconciliation/diff, events, monitor, ping, WoL, port probe. Pure logic over `Env` + `Store` |
-| `internal/store` | SQLite persistence (inventory, history, events, meta) |
-| `internal/fingerprint` | Conservative device-type classification + naming from vendor/hostname/ports |
-| `internal/oui` | Embedded IEEE OUI database |
-| `internal/api` | REST + SSE. Security: loopback only, Host check, Origin allow-list, bearer token |
-| `internal/appdata` | Data dir (`%LOCALAPPDATA%\NetWatch\data\network.db`) |
-| `cmd/netwatchd` | Headless engine for development/CLI/service use |
-| `main.go`, `app.go` | Wails host (build tag `windows`); `main_other.go` is a stub elsewhere |
-| `frontend/` | Vite + React + TS + Tailwind. `HttpNetworkService` (real) / `MockNetworkService` (prototype) chosen in `services/createNetworkService.ts` |
-
-Key behaviours already implemented (do not regress): per-network inventory keyed by subnet+gateway MAC;
-a device goes offline only after `OfflineAfterMisses` (2) consecutive missed scans; new devices stay
-`isNew` until acknowledged (`PATCH /v1/devices/{id}` `{isNew:false}`); scans stream progress over SSE;
-only one scan runs at a time.
-
-API (all under `/v1`, bearer token except `health`): `GET network, devices, devices/{id}, devices/{id}/history, events,
-scans/{id}, scans/{id}/stream` · `PATCH devices/{id}` · `POST scans, ping, wol, devices/{id}/ports, data/open` · `DELETE data`.
-
-Frontend conversion: the engine sends ISO times; `HttpNetworkService` formats them to the strings the
-UI expects (`Now`, `5m ago`, `HH:mm`) and adds `lastSeenAt` for sorting. Keep the UI independent of the
-engine: pages talk only to `NetworkService` via `NetworkContext`.
-
-## 3. Rules for working in this repo
-1. **Contract first.** Changing a wire shape = update `internal/model`, `frontend/src/types`, the adapter, and the tests together.
-2. **OS code only in `internal/netenv`.** Engine/API must stay testable on Linux with the fake env (`internal/engine/fake_test.go`).
-3. Every engine behaviour change needs a test in `internal/engine`. Run `go test -race ./...` before finishing.
-4. Frontend: `cd frontend && npx tsc --noEmit && npx vite build` must pass. Keep the design system in `docs`-style
-   spec: dense, quiet, desktop-first (min 1180×720), no emoji icons, no neon/glass/SaaS look.
-5. Windows code cannot run on Linux. Verify with `GOOS=windows go build ./... && GOOS=windows go vet ./...`, and state clearly
-   what was **not** run on real Windows. Never claim hardware behaviour you did not observe.
-6. Don't commit secrets/tokens; don't log the session token; never widen the API beyond 127.0.0.1 or relax Host/Origin checks.
-7. Prefer small, reviewable commits. Don't rewrite working modules; extend them.
-
-Build notes: `golang.org/x/*` may need `replace` to GitHub mirrors in restricted networks (see `go.mod`);
-on a normal machine run `go mod tidy`. Desktop build: `wails build` (Wails v2.10.x).
-
-## 4. Dev loop
-```
-go run ./cmd/netwatchd -origin http://localhost:3000      # prints {baseUrl, token}
-cd frontend && npm install && npm run dev                  # open /?api=<baseUrl>&token=<token>
-go test -race ./...    &&   (cd frontend && npx tsc --noEmit)
+React 19 Desktop UI (frontend/)  ──HTTP + SSE──▶  Go Core Engine  ──▶  SQLite Database
+   Wails / WebView2 Host                          127.0.0.1:<random>     %LOCALAPPDATA%\NetWatch\data\network.db
+                                                  Bearer Token Auth
 ```
 
-## 5. Status and honest gaps
-Done: engine v0.1.0-alpha.1 (discovery, scan quick/full, diff/events, SQLite, ping, WoL, port probe, background auto-scan scheduler), API, Wails host,
-UI wired to the engine, security checks, simulated-network tests.
-**Verified on real Windows**: iphlpapi ARP (`GetIpNetTable`), unprivileged ICMP (`IcmpSendEcho`), adapter and DNS discovery (`GetAdaptersAddresses`), live LAN scan (`192.168.1.0/24`), rotating file logging (`%LOCALAPPDATA%\NetWatch\data\netwatch.log`), standalone GUI build (`build/bin/netwatch.exe`), and published release `v0.1.0-alpha.1`.
-**Governance & CI/CD live**: GitHub Actions CI with SHA-pinned actions (`.github/workflows/ci.yml`), GitHub Rulesets enforcing default branch (`main`) and tag (`v*`) protection with required CI checks and linear history, Dependabot grouped updates with strict supply-chain pinning, dual licensing (`LICENSE-MIT` and `LICENSE-APACHE`), formal STRIDE model (`THREAT_MODEL.md`), incident response playbook (`INCIDENT_RESPONSE.md`), public roadmap (`ROADMAP.md`), and comprehensive unit test suites for `internal/api` and `internal/store`.
-Known gaps: SSID (UI falls back to interface name), mDNS/NetBIOS/SSDP names, DHCP info,
-Windows toast notifications, tray / start minimized / launch at startup (HKCU Run key), Playwright smoke suite, installer/signing.
+| Subsystem Path | Responsibility | Architectural Boundary |
+|---|---|---|
+| `internal/model/` | Canonical Go wire contracts | JSON field names strictly mirror `frontend/src/types/*.ts`. Timestamps are RFC 3339 UTC. |
+| `internal/netenv/` | **All Operating System network access** | Hidden behind `Env` interface. `env_windows.go` (iphlpapi), `env_linux.go`, `env_other.go`. `Portable` holds cross-platform logic (WoL, TCP probe, rDNS). |
+| `internal/engine/` | LAN discovery & intelligence | Pure Go logic over `Env` + `Store`. Subnet sweeps, state reconciliation/diff, event stream, ping, WoL, port probing, background auto-scan scheduler. |
+| `internal/store/` | SQLite local ledger | WAL-mode persistence for network inventory, device history, event audit trail, and user settings. |
+| `internal/fingerprint/`| Hardware classification | Conservative device-type heuristics from vendor OUI, hostname, and open port signatures. |
+| `internal/oui/` | IEEE OUI database | Embedded raw vendor mappings. Air-gapped offline lookup. |
+| `internal/api/` | REST + SSE Server | Binds strictly to `127.0.0.1:<random-port>`. Guarded by 192-bit Bearer token, Host validation (anti-DNS rebinding), and Origin allowlisting. |
+| `internal/appdata/` | OS persistence paths | Manages `%LOCALAPPDATA%\NetWatch\data`, rotating log file (`netwatch.log`), and platform folder launchers. |
+| `cmd/netwatchd/` | Headless daemon | Standalone CLI and service runner for development, headless environments, and Linux/macOS. |
+| `main.go`, `app.go` | Wails Desktop Host | Native Windows window frame, menu bindings, system asset server, and lifecycle coordination. |
+| `frontend/` | Desktop UI | Vite + React 19 + TypeScript + Tailwind CSS v4. Consumes engine exclusively via `NetworkService` interface. |
 
-## 6. Roadmap (do in this order; one milestone per PR)
-*For the public, user-facing milestone tracker, see `ROADMAP.md`.*
+---
 
-- [x] **M1 – Validate on Windows**: verified Go engine on real LAN, iphlpapi ARP & ICMP echo, adapter discovery, Open Data Folder wired, built standalone Windows executable (`build/bin/netwatch.exe`), and added rotating file logging (`netwatch.log`).
-- [x] **M2 – CI & Governance Baseline**: GitHub Actions CI (`go test -race` on Ubuntu, `go test` + `GOOS=windows go build` on Windows), frontend typecheck/build, GitHub Rulesets enforcing branch & tag protection with strict CI checks, unit tests for API security invariants (Bearer auth, Origin/Host check) and Store transactions/persistence, Dependabot grouped updates, dual licensing, formal STRIDE threat model, and incident response playbook.
-- [ ] **M3 – Real Settings & Database Management (In Progress)**: persist settings in SQLite (`GET/PUT /v1/settings` - done); database inspection & maintenance panel (live DB size, stats, WAL status, VACUUM/integrity_check, robust Open Data Folder with absolute path resolution - done); scheduled auto-scan engine worker with configurable intervals (`1m`, `5m`, `15m`, `1h`, `manual` - done); Windows toast notifications for new device / offline / network change; tray + start minimized + launch at startup (HKCU Run key).
-- [ ] **M4 – Better Identity**: mDNS, NetBIOS, SSDP/UPnP, DHCP lease info; SSID via WLAN API; improved classification with confidence
-and an explicit "Unknown" fallback; user-editable device type; full OUI refresh script (offline file, no runtime download).
-- [ ] **M5 – Diagnostics**: traceroute, DNS lookup/reverse, latency history charts per device, gateway/DNS/internet health from real probes only.
-- [ ] **M6 – QA, Comprehensive Tests & Data Lifecycle**: full unit & integration tests for finalized `store` and `api`, Playwright E2E smoke tests against `netwatchd` and UI, export JSON/CSV, retention policy, and DB migrations framework with versioned schema.
-- [ ] **M7 – Release**: MSI/NSIS installer, free Authenticode code signing via **SignPath.io** Foundation, auto-update **opt-in only**, privacy statement matching actual behaviour.
-Later: SNMP, topology from real LLDP/ARP data, multi-network profiles, CLI (`netwatch discover|scan|export`) on top of the engine.
+## 3. Go Core & Engine Best Practices
 
-## 7. When you finish a task
-Report: what changed, what you ran (exact commands + results), what you could **not** verify (especially Windows),
-and the next milestone item. Update this file's section 5/6 if status changed.
+1. **Strict OS Isolation Boundary**:
+   - Platform-dependent network calls (e.g., Windows `iphlpapi.dll` or Linux `/proc/net/arp`) MUST live exclusively within `internal/netenv/`.
+   - The engine and API layers must remain 100% testable on any operating system using the simulated environment (`internal/engine/fake_test.go`).
+2. **Concurrency & Thread Safety**:
+   - Every background task (such as `runAutoScan(ctx)`) must accept a `context.Context` and terminate cleanly on cancellation.
+   - Dynamic configuration triggers must use non-blocking channel notifications (`select { case ch <- struct{}{}: default: }`).
+   - All state modifications must pass `go test -race ./...` without data races.
+3. **SQLite Concurrency & WAL Stability**:
+   - NETWATCH utilizes `github.com/ncruces/go-sqlite3` (v0.35.6+). Ensure driver versions avoid concurrency bugs in Windows shared-memory WAL mode.
+   - Always verify query scans and propagate database errors explicitly; never silently swallow scan failures in `Store.Stats`.
+4. **Triple-Layer Loopback API Security**:
+   - Never bind outside `127.0.0.1`.
+   - Never log the ephemeral Bearer token to stdout or log files.
+   - Never relax Host or Origin verification headers in `internal/api/server.go`.
+
+---
+
+## 4. TypeScript & React 19 UI Best Practices
+
+1. **Wire Contract Parity**:
+   - Changing any model property requires simultaneous, synchronized updates across `internal/model/model.go`, `frontend/src/types/`, `frontend/src/services/HttpNetworkService.ts`, and corresponding unit tests.
+2. **React 19 Performance**:
+   - Utilize `useDeferredValue` for interactive text search and filtering across device and event tables to ensure 60 FPS input fluidity.
+   - Keep page components decoupled from HTTP details: pages consume only `NetworkService` through `NetworkContext`.
+3. **Quiet, Desktop-First Aesthetic**:
+   - Follow desktop-first UI design (minimum viewport 1180×720).
+   - Dense, high-information typography with zero decorative fluff. Avoid flashy SaaS neon, heavy glassmorphism, or oversized mobile padding.
+   - Dark/Light mode is powered by Tailwind v4 CSS variables with explicit `@custom-variant dark (&:where(.dark, .dark *));`.
+4. **Action Consolidation**:
+   - Maintain clear separation between network sweeps (`Radar` icon / `Scan` / `Rescan`) and client-side text filtering (`Search` magnifying glass).
+
+---
+
+## 5. Wails v2 Desktop Bridge & Toolchain Guidelines
+
+1. **Toolchain CLI Alignment**:
+   - Keep the Go module `github.com/wailsapp/wails/v2` pinned to `v2.10.x` to match the locally installed Wails CLI (`wails v2.10.2`). Do not allow automated tools to bump it to untested major versions.
+2. **Clean Checkout Compilation (Vite Embed Stub)**:
+   - When Go embeds `frontend/dist` (`//go:embed all:frontend/dist`), a clean git clone lacks `dist/`.
+   - Maintain `frontend/public/.gitkeep` (copied into `dist/` on build) AND ensure build scripts execute `mkdir -p frontend/dist && touch frontend/dist/.gitkeep` before Go toolchain invocation.
+3. **Desktop Subsystem Build**:
+   - Windows desktop production binaries must be compiled with GUI subsystem suppression to prevent background console windows:
+     ```powershell
+     go build -tags desktop,production -ldflags "-w -s -H windowsgui" -o build/bin/netwatch.exe .
+     ```
+4. **Platform Shell Launchers**:
+   - System folder actions (`OpenDataFolder`) must use OS-abstracted implementations:
+     - Windows: absolute `%WINDIR%\explorer.exe` execution with `syscall.SysProcAttr{HideWindow: true}`.
+     - Linux/macOS: `xdg-open` or `open`.
+
+---
+
+## 6. Git & CI/CD Supply Chain Invariants
+
+1. **Binary Resource Preservation (`.gitattributes`)**:
+   - Whenever `* text eol=lf` is active, binary assets MUST be explicitly marked as `binary` in `.gitattributes`:
+     ```gitattributes
+     *.syso binary
+     *.dll binary
+     *.exe binary
+     *.ico binary
+     *.wasm binary
+     ```
+   - Failing to do so causes Git to alter CRLF line endings, corrupting COFF object headers (`fail to read string table length: unexpected EOF`).
+2. **Supply Chain Security & SHA Pinning (`sec-01`)**:
+   - All GitHub Actions in `.github/workflows/` must be pinned to full 40-character commit SHAs with minimum `permissions: contents: read`.
+3. **Dependabot Governance (`.github/dependabot.yml`)**:
+   - Enforce grouped updates (`go-dependencies` and `frontend-dependencies`).
+   - Lock down breaking dependencies under `ignore`:
+     - `github.com/wailsapp/wails/v2`
+     - `@types/node` (major version)
+     - `motion` (major version)
+     - `lucide-react` (major version)
+4. **GitHub Rulesets Governance**:
+   - Branch `main`: Active ruleset blocking force-push, deletion, requiring linear history and strict green CI status checks (`Go Engine Tests (ubuntu-latest)`, `Go Engine Tests (windows-latest)`, `Frontend Typecheck & Build`).
+   - Release tags `refs/tags/v*`: Protected against deletion and mutation.
+
+---
+
+## 7. SemVer & Release Lifecycle Management
+
+### The Release Consistency Principle
+A change is never complete if the project's versioning documentation is inconsistent.
+$$\text{Code Implementation} + \text{Version Identifiers} + \text{CHANGELOG.md} + \text{ROADMAP.md} = \text{One Change Set}$$
+
+1. **Semantic Versioning (SemVer 2.0.0)**:
+   - **PATCH**: Backward-compatible bug fixes and internal maintenance.
+   - **MINOR**: Backward-compatible new capabilities or endpoints.
+   - **MAJOR**: Incompatible public API, contract, or architecture changes.
+2. **Keep a Changelog (v1.1.0)**:
+   - Stage active work under `## [Unreleased]`.
+   - Use standard subheadings: `### Added`, `### Changed`, `### Fixed`.
+   - Maintain release compare links at the bottom of `CHANGELOG.md`.
+3. **Version Identifier Synchronization**:
+   - The authoritative version must remain strictly identical across:
+     - `main.go` (`var version`)
+     - `cmd/netwatchd/main.go` (`var version`)
+     - `frontend/package.json` (`"version"`)
+     - `winres/winres.json` (`"ProductVersion"`)
+     - Active GitHub Release tag (`v*`)
+
+---
+
+## 8. Development Loop & Current Milestone Status
+
+### Local Development Loop
+```powershell
+# 1. Run headless daemon (prints local loopback URL & token)
+go run ./cmd/netwatchd -origin http://localhost:3000
+
+# 2. Run frontend Vite dev server (in frontend/)
+cd frontend && npm install && npm run dev
+# Open: http://localhost:3000/?api=<baseUrl>&token=<token>
+
+# 3. Validation test suite
+go test -race ./...
+cd frontend && npx tsc --noEmit && npx vite build
+```
+
+### Current Roadmap Status
+*For the complete milestone tracker, see `ROADMAP.md`.*
+
+- [x] **M1 – Windows Native Validation**: Verified on real Windows LAN (`192.168.1.0/24`), unprivileged ICMP & ARP, rotating logger (`netwatch.log`), and standalone GUI build (`build/bin/netwatch.exe`).
+- [x] **M2 – CI, Security & Governance Baseline**: Multi-OS CI with SHA-pinned actions, GitHub Rulesets on `main` and release tags, Dependabot grouped updates, STRIDE threat model (`THREAT_MODEL.md`), incident response playbook (`INCIDENT_RESPONSE.md`), and unit test suites for API loopback security and Store persistence.
+- [ ] **M3 – Real Settings & Database Management (In Progress)**:
+  - [x] SQLite settings persistence (`GET/PUT /v1/settings`).
+  - [x] Background auto-scan engine scheduler (`1m`, `5m`, `15m`, `1h`, `manual`).
+  - [x] Real-time SQLite statistics card, VACUUM compaction, and integrity checks.
+  - [ ] Native Windows toast notifications for new devices, offline events, and network changes.
+  - [ ] System Tray integration: minimize-to-tray and start-minimized via HKCU Run key.
+- [ ] **M4 – Better Identity**: mDNS (Bonjour), NetBIOS, SSDP/UPnP, DHCP lease info, Wi-Fi SSID via WLAN API, confidence scoring with "Unknown" fallback.
+- [ ] **M5 – Diagnostics**: Hop-by-hop traceroute, reverse DNS latency benchmark, per-device latency history charts.
+- [ ] **M6 – QA & Data Lifecycle**: Playwright E2E smoke suite, export to JSON/CSV, event log retention policy.
+- [ ] **M7 – Release & Code Signing**: Windows MSI/NSIS installer, SignPath.io Authenticode signing, opt-in updates.
+
+---
+
+## 9. Handoff Checklist for Every PR / Task
+Before declaring any task complete, verify:
+1. `go test -race ./...` passes without errors or data races.
+2. `cd frontend && npm run build` compiles with zero TypeScript or Vite errors.
+3. Any version-affecting change updates `CHANGELOG.md`, `ROADMAP.md`, and version variables atomically.
+4. Working tree is clean (`git status`).
