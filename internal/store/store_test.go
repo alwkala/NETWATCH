@@ -293,3 +293,69 @@ func TestStore_PruneEvents(t *testing.T) {
 		t.Fatalf("expected only recent event left, got: %+v", evs)
 	}
 }
+
+func TestStore_MergeDevicesAndTrustStatus(t *testing.T) {
+	ctx := context.Background()
+	st, err := store.Open(":memory:")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer st.Close()
+
+	now := time.Now().UTC()
+	ws := store.Writeset{
+		Devices: []store.Known{
+			{Device: model.Device{ID: "dev-target", MAC: "00:11:22:33:44:55", IP: "192.168.1.10", Name: "My Phone", TrustStatus: model.TrustKnown, FirstSeen: now, LastSeen: now}},
+			{Device: model.Device{ID: "dev-source", MAC: "02:AA:BB:CC:DD:EE", IP: "192.168.1.11", Name: "Private MAC Phone", IsRandomizedMAC: true, TrustStatus: model.TrustUnknown, FirstSeen: now, LastSeen: now}},
+		},
+		History: []store.HistoryRow{
+			{DeviceID: "dev-target", Time: now, Type: model.HistDiscovered, Desc: "Target first discovered"},
+			{DeviceID: "dev-source", Time: now, Type: model.HistDiscovered, Desc: "Source first discovered"},
+		},
+	}
+	if err := st.Commit(ctx, ws); err != nil {
+		t.Fatal(err)
+	}
+
+	// 1. Verify TrustStatus update
+	guest := model.TrustGuest
+	if err := st.UpdateDevice(ctx, "dev-target", model.DevicePatch{TrustStatus: &guest}); err != nil {
+		t.Fatalf("UpdateDevice trustStatus: %v", err)
+	}
+	d, err := st.GetDevice(ctx, "dev-target")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if d.TrustStatus != model.TrustGuest {
+		t.Fatalf("expected TrustStatus to be %q, got %q", model.TrustGuest, d.TrustStatus)
+	}
+
+	// 2. Perform merge
+	if err := st.MergeDevices(ctx, "dev-target", "dev-source"); err != nil {
+		t.Fatalf("MergeDevices: %v", err)
+	}
+
+	// Source should be deleted
+	_, err = st.GetDevice(ctx, "dev-source")
+	if err != store.ErrNotFound {
+		t.Fatalf("expected source device to be deleted, got err: %v", err)
+	}
+
+	// Target history should contain merged events
+	hist, err := st.DeviceHistory(ctx, "dev-target", 10)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(hist) != 3 { // target discovered + source discovered + device_merged
+		t.Fatalf("expected 3 history items after merge, got %d", len(hist))
+	}
+
+	// MACAliases should map source MAC to target
+	aliases, err := st.MACAliases(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if aliases["02:AA:BB:CC:DD:EE"] != "dev-target" {
+		t.Fatalf("expected alias 02:AA:BB:CC:DD:EE -> dev-target, got %q", aliases["02:AA:BB:CC:DD:EE"])
+	}
+}

@@ -430,3 +430,82 @@ func TestAPI_ParseOriginLoopbackValidation(t *testing.T) {
 		}
 	}
 }
+
+func TestAPI_DeviceMergeAndTrustStatus(t *testing.T) {
+	dbPath := filepath.Join(t.TempDir(), "test_merge.db")
+	st, err := store.Open(dbPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer st.Close()
+
+	now := time.Now().UTC()
+	ws := store.Writeset{
+		Devices: []store.Known{
+			{Device: model.Device{ID: "d-target", MAC: "00:11:22:33:44:55", IP: "192.168.1.50", Name: "Laptop", TrustStatus: model.TrustKnown, FirstSeen: now, LastSeen: now}},
+			{Device: model.Device{ID: "d-source", MAC: "02:11:22:33:44:55", IP: "192.168.1.51", Name: "Laptop Private", IsRandomizedMAC: true, TrustStatus: model.TrustUnknown, FirstSeen: now, LastSeen: now}},
+		},
+	}
+	if err := st.Commit(context.Background(), ws); err != nil {
+		t.Fatal(err)
+	}
+
+	eng := engine.New(engine.Options{
+		Env:   &mockEnv{},
+		Store: st,
+	})
+	token := "test-secret-bearer-token-12345"
+	srv := api.New(eng, api.Config{
+		Token:   token,
+		Version: "0.1.0-test",
+		DBPath:  dbPath,
+	})
+	handler := srv.Handler()
+
+	doReq := func(method, path string, body []byte) *httptest.ResponseRecorder {
+		var r *http.Request
+		if body != nil {
+			r = httptest.NewRequest(method, path, bytes.NewReader(body))
+			r.Header.Set("Content-Type", "application/json")
+		} else {
+			r = httptest.NewRequest(method, path, nil)
+		}
+		r.Host = "127.0.0.1:8080"
+		r.Header.Set("Authorization", "Bearer "+token)
+		rec := httptest.NewRecorder()
+		handler.ServeHTTP(rec, r)
+		return rec
+	}
+
+	// 1. PATCH trust status to guest
+	patchBody, _ := json.Marshal(map[string]any{"trustStatus": "guest"})
+	rec := doReq(http.MethodPatch, "/v1/devices/d-target", patchBody)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("PATCH trustStatus failed: %d, %s", rec.Code, rec.Body.String())
+	}
+	var patched model.Device
+	_ = json.Unmarshal(rec.Body.Bytes(), &patched)
+	if patched.TrustStatus != "guest" {
+		t.Fatalf("expected trustStatus 'guest', got %s", patched.TrustStatus)
+	}
+
+	// 2. Reject invalid trust status
+	badPatch, _ := json.Marshal(map[string]any{"trustStatus": "invalid-status"})
+	rec = doReq(http.MethodPatch, "/v1/devices/d-target", badPatch)
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400 for bad trust status, got %d", rec.Code)
+	}
+
+	// 3. POST /v1/devices/{id}/merge
+	mergeBody, _ := json.Marshal(map[string]any{"sourceId": "d-source"})
+	rec = doReq(http.MethodPost, "/v1/devices/d-target/merge", mergeBody)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("POST merge failed: %d, %s", rec.Code, rec.Body.String())
+	}
+
+	// Verify source device is now gone
+	rec = doReq(http.MethodGet, "/v1/devices/d-source", nil)
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("expected 404 for merged source device, got %d", rec.Code)
+	}
+}
