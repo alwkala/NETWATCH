@@ -1,4 +1,4 @@
-# NETWATCH — Local Network Intelligence
+# NETWATCH — Super Fast Network Scanner , Privacy-first Local Network Intelligence & discovery utility 
 
 <div align="center">
 
