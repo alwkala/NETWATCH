@@ -31,8 +31,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Created structured issue forms in `.github/ISSUE_TEMPLATE/` (`bug_report.yml`, `feature_request.yml`, `config.yml`) and `.github/pull_request_template.md`.
   - Added `SECURITY.md` (vulnerability disclosure SLA & loopback privacy invariants) and `CONTRIBUTING.md` (local-first design rules).
   - Adopted Contributor Covenant v2.1 in `CODE_OF_CONDUCT.md`.
-  - Redesigned `README.md` with visual architecture badges, download matrix, and collapsible diagnostics.
-  - Updated repository topics and description on GitHub via `gh` CLI to reflect cross-platform architecture.
+  - Redesigned `README.md` with hybrid positioning: *Super Fast Network Scanner & Device Inventory*, hero value propositions, competitive matrix, visual architecture, and collapsible diagnostics.
+  - Updated repository topics and description on GitHub via `gh` CLI: *"Super Fast Network Scanner & Device Inventory. Instant LAN discovery, 100% offline, zero cloud."*
 
 ### Fixed
 - **Windows ARP Table Desynchronization**:

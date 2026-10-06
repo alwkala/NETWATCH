@@ -2,13 +2,15 @@
 
 <!-- last-verified: 2026-10-06 -->
 
-This roadmap provides a transparent overview of the development direction and milestones for **NETWATCH**.
+> **Super Fast Network Scanner & Device Inventory**  
+> *Instant LAN discovery and persistent device tracking — 100% offline, zero cloud, zero telemetry.*
 
 ---
 
 ## Strategic Vision
 
-NETWATCH is transitioning from a validated Windows prototype into a battle-tested, privacy-first cross-platform desktop network intelligence suite (competing with commercial utilities like Fing, but 100% offline and telemetry-free).
+**Know Every Device on Your LAN. Without the Cloud Watching.**  
+NETWATCH sweeps subnets in milliseconds, fingerprints hardware locally, and maintains an unshakeable local SQLite device inventory. The roadmap tracks its evolution from a validated Windows desktop engine into a full-featured, cross-platform network intelligence suite (100% offline, zero telemetry, no accounts).
 
 ---
 

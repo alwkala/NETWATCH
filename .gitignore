@@ -4,3 +4,4 @@ frontend/dist/*
 build/bin/
 prototype/
 *.exe
+/.agents

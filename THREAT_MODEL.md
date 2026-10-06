@@ -2,6 +2,9 @@
 
 <!-- last-verified: 2026-10-06 -->
 
+> **Privacy-First Local Network Intelligence & Device Inventory**  
+> *Instant LAN discovery and persistent device tracking — 100% offline, zero cloud, zero telemetry.*
+
 This document formalizes the threat landscape, security boundaries, and mitigations for **NETWATCH**, adhering to the STRIDE methodology.
 
 For vulnerability reporting instructions, see [SECURITY.md](SECURITY.md).<br>
