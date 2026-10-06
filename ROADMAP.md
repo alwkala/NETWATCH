@@ -2,15 +2,15 @@
 
 <!-- last-verified: 2026-10-06 -->
 
-> **Super Fast Network Scanner & Device Inventory**  
-> *Instant LAN discovery and persistent device tracking — 100% offline, zero cloud, zero telemetry.*
+> **Local Network Intelligence & Device Inventory**  
+> *Instant LAN discovery, historical reconciliation, and persistent device tracking — 100% offline, zero cloud, zero telemetry.*
 
 ---
 
 ## Strategic Vision
 
 **Know Every Device on Your LAN. Without the Cloud Watching.**  
-NETWATCH sweeps subnets in milliseconds, fingerprints hardware locally, and maintains an unshakeable local SQLite device inventory. The roadmap tracks its evolution from a validated Windows desktop engine into a full-featured, cross-platform network intelligence suite (100% offline, zero telemetry, no accounts).
+NETWATCH is not an ephemeral scanner; it is a persistent local network intelligence suite. While discovery sweeps act as the ingestion sensor, the core value lies in continuous asset tracking, historical state reconciliation (joins, leaves, IP migrations), and offline hardware fingerprinting inside a sovereign SQLite ledger (100% offline, zero telemetry, no accounts).
 
 ---
 

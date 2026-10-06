@@ -54,6 +54,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Cleaned up proxy mirror `replace` directives in `go.mod` for direct, clean module resolution on standard Windows environments.
 
 ### Changed & Improved
+- **Strategic Product Re-Positioning & Narrative Elevation**:
+  - Re-positioned product from ephemeral scanner to *Local Network Intelligence & Device Inventory* across README, ROADMAP, AGENTS handoff, and Settings About card.
+  - Added dedicated architectural matrix contrasting ephemeral "fire-and-forget" scanners with persistent SQLite asset ledgers, historical timelines, and reconciliation state tracking.
+  - Synchronized repository metadata on GitHub with `network-intelligence` topic and elevated tagline.
 - **Desktop Window & Header Customization**:
   - Eliminated redundant simulated `<TitleBar />` in production desktop host, reclaiming vertical space and aligning with Windows native frame controls.
   - Added embedded multi-resolution Windows application icon resource (`rsrc_windows_amd64.syso`) with Icon ID 3 mapping (`winc.AppIconID = 3`) generated via `go-winres` for native Windows TitleBar, Taskbar, Alt+Tab, and Explorer integration.

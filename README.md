@@ -1,8 +1,8 @@
-# NETWATCH — Super Fast Network Scanner & Device Inventory
+# NETWATCH — Local Network Intelligence & Device Inventory
 
 <div align="center">
 
-### Privacy-First Local Network Intelligence & Discovery Utility
+### Privacy-First Local-First Network Discovery, Inventory & Asset Intelligence
 
 [![CI](https://github.com/alwkala/NETWATCH/actions/workflows/ci.yml/badge.svg)](https://github.com/alwkala/NETWATCH/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE-MIT)
@@ -12,6 +12,7 @@
 [![Privacy](https://img.shields.io/badge/Privacy-100%25_Local--First-success.svg)](#privacy-invariants)
 
 <a href="#downloads--platform-support"><b>Download</b></a> •
+<a href="#beyond-ephemeral-scanning-asset-intelligence"><b>Why Asset Intelligence</b></a> •
 <a href="#design-principles--architectural-guarantees"><b>Design Principles</b></a> •
 <a href="ROADMAP.md"><b>Roadmap</b></a> •
 <a href="THREAT_MODEL.md"><b>Threat Model</b></a> •
@@ -21,11 +22,28 @@
 <br>
 
 > ## Know Every Device on Your LAN. Without the Cloud Watching.
-> **NETWATCH provides active LAN discovery, fingerprints hardware locally, and maintains an unshakeable device inventory. 100% offline, zero telemetry, no account required.**
+> **NETWATCH is not an ephemeral scanner that forgets everything upon closing; it is a persistent local network intelligence suite. It continuously tracks subnet assets, reconciles state changes over time (joins, departures, IP drifts), and preserves historical timelines inside a sovereign SQLite ledger — 100% offline, zero cloud, zero telemetry.**
 >
-> *Instant LAN discovery and persistent device tracking — 100% offline, zero cloud, zero telemetry.*
+> *Instant LAN discovery, historical reconciliation, and persistent device tracking — 100% offline, zero cloud, zero telemetry.*
 
 </div>
+
+---
+
+## Beyond Ephemeral Scanning: Asset Intelligence
+
+Traditional network scanners (like *Advanced IP Scanner* or *Angry IP Scanner*) are momentary utilities: they perform a fire-and-forget sweep, render a transient table, and discard all state when closed. They have no memory, no temporal awareness, and cannot distinguish a brand new intruder from a stable home workstation.
+
+In NETWATCH, **scanning is only the sensor (ingestion mechanism)**. The true product is the **Local Asset Ledger & Reconciliation Engine**:
+
+| Capability | Ephemeral Scanners | NETWATCH (Local Network Intelligence) |
+|---|---|---|
+| **Core Question** | *"What is responding right now?"* | *"What was here? What changed? Who joined, left, or drifted IP? When?"* |
+| **State & Memory** | Ephemeral (wiped on app exit) | Persistent local [SQLite](internal/store) database across reboots |
+| **Asset Lifecycle** | No concept of first seen / history | Dedicated timeline tracking joins, departures, and IP migrations |
+| **Flap Resistance** | Single missed ping triggers disconnect | Threshold reconciliation (`misses = 2`) prevents sleep-mode false alerts |
+| **New Device Detection** | Undifferentiated list row | Explicit `isNew` status badge until acknowledged by user |
+| **Data Privacy** | Cloud uploads / external API calls common | **100% Sovereign**: Air-gapped IEEE OUI lookup, zero external requests, zero telemetry |
 
 ---
 

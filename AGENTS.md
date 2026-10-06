@@ -4,9 +4,9 @@ Read this file fully before changing anything. Then read `README.md`, `internal/
 (the wire contract) and `frontend/src/services/NetworkService.ts` (the UI contract).
 
 ## 1. What this product is
-NETWATCH is a **Super Fast Network Scanner & Device Inventory** (local-first, privacy-first desktop network intelligence & discovery utility):
+NETWATCH is a **Local Network Intelligence & Device Inventory** suite (local-first, privacy-first desktop network intelligence & discovery utility):
 **"Know Every Device on Your LAN. Without the Cloud Watching."**
-Instant LAN discovery and persistent device tracking — 100% offline, zero cloud, zero telemetry.
+Instant LAN discovery, historical reconciliation, and persistent device tracking — 100% offline, zero cloud, zero telemetry.
 Architecture is cross-platform (Windows native Wails host primary, headless daemon in `cmd/netwatchd` for Linux dev/CLI, macOS on roadmap).
 
 Non-negotiable principles:
