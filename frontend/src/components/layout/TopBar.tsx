@@ -7,10 +7,15 @@ import {
   Wifi,
   ChevronRight,
   Sun,
-  Moon
+  Moon,
+  Menu
 } from 'lucide-react';
 
-export const TopBar: React.FC = () => {
+interface TopBarProps {
+  onToggleMobileMenu?: () => void;
+}
+
+export const TopBar: React.FC<TopBarProps> = ({ onToggleMobileMenu }) => {
   const {
     activePage,
     selectedDevice,
@@ -45,10 +50,19 @@ export const TopBar: React.FC = () => {
   };
 
   return (
-    <div className="h-13 shrink-0 bg-white dark:bg-neutral-900 border-b border-neutral-200 dark:border-neutral-800 px-6 flex items-center justify-between transition-colors">
-      {/* Left: Breadcrumb / Title */}
-      <div className="flex items-center gap-2">
-        <h1 className="text-base font-bold text-neutral-900 dark:text-neutral-100 tracking-tight">
+    <div className="h-13 shrink-0 bg-white dark:bg-neutral-900 border-b border-neutral-200 dark:border-neutral-800 px-3 md:px-6 flex items-center justify-between transition-colors">
+      {/* Left: Mobile menu toggle + Breadcrumb / Title */}
+      <div className="flex items-center gap-2 min-w-0">
+        <button
+          onClick={onToggleMobileMenu}
+          className="p-1.5 md:hidden text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded border border-neutral-200 dark:border-neutral-700 transition-colors shrink-0"
+          title="Open navigation menu"
+          aria-label="Open navigation menu"
+        >
+          <Menu className="w-4 h-4" />
+        </button>
+
+        <h1 className="text-sm md:text-base font-bold text-neutral-900 dark:text-neutral-100 tracking-tight truncate">
           {getPageTitle()}
         </h1>
         {activePage === 'device-details' && selectedDevice && (
@@ -128,7 +142,7 @@ export const TopBar: React.FC = () => {
             ) : (
               <>
                 <Radar className="w-3.5 h-3.5 text-emerald-500 dark:text-emerald-600" />
-                <span>Scan Network</span>
+                <span>Scan</span>
               </>
             )}
           </button>

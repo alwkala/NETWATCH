@@ -135,6 +135,7 @@ type NetworkInfo struct {
 	Subnet          string                 `json:"subnet"`
 	DNS             []string               `json:"dns"`
 	LocalIP         string                 `json:"localIp"`
+	PublicIP        string                 `json:"publicIp,omitempty"`
 	Broadcast       string                 `json:"broadcast"`
 	Netmask         string                 `json:"netmask"`
 	TotalAddresses  int                    `json:"totalAddresses"`
@@ -163,6 +164,7 @@ type DevicePatch struct {
 	Notes       *string `json:"notes,omitempty"`
 	IsNew       *bool   `json:"isNew,omitempty"`
 	TrustStatus *string `json:"trustStatus,omitempty"`
+	Type        *string `json:"type,omitempty"`
 }
 
 // MergeDevicesRequest defines the payload for POST /v1/devices/{targetId}/merge.

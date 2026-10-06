@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { ThemeProvider } from './context/ThemeContext';
 import { NetworkProvider, useNetwork } from './context/NetworkContext';
 import { TitleBar } from './components/layout/TitleBar';
@@ -44,6 +44,7 @@ const MainContent: React.FC = () => {
 
 const AppShell: React.FC = () => {
   const { service } = useNetwork();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
     <div className="flex flex-col h-screen w-screen overflow-hidden bg-neutral-100 dark:bg-neutral-950 font-sans text-neutral-900 dark:text-neutral-100">
@@ -51,13 +52,16 @@ const AppShell: React.FC = () => {
       {service.isSimulated && <TitleBar />}
 
       {/* Application Main Layout */}
-      <div className="flex flex-1 overflow-hidden">
-        {/* Desktop Navigation Sidebar */}
-        <Sidebar />
+      <div className="flex flex-1 overflow-hidden relative">
+        {/* Navigation Sidebar (Desktop + Mobile Slide-over Drawer) */}
+        <Sidebar
+          mobileOpen={mobileMenuOpen}
+          onMobileClose={() => setMobileMenuOpen(false)}
+        />
 
         {/* Content Column: TopBar + Page Body */}
         <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-          <TopBar />
+          <TopBar onToggleMobileMenu={() => setMobileMenuOpen(v => !v)} />
           <MainContent />
         </div>
       </div>

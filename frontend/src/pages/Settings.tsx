@@ -628,7 +628,7 @@ export const Settings: React.FC = () => {
               <h2 className="text-sm font-semibold text-neutral-900 dark:text-neutral-100 flex items-center gap-2">
                 NETWATCH Desktop
                 <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
-                  v0.1.0-alpha.1
+                  v0.2.0-alpha.1
                 </span>
               </h2>
               <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">

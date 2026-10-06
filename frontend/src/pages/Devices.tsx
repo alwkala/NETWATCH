@@ -52,7 +52,7 @@ export const Devices: React.FC = () => {
           className="px-4 py-2 bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 text-xs font-semibold rounded flex items-center gap-2 hover:bg-neutral-800 dark:hover:bg-white transition-colors"
         >
           <Radar className="w-3.5 h-3.5 text-emerald-500" />
-          <span>Scan Network</span>
+          <span>Scan</span>
         </button>
       </div>
     );

@@ -144,7 +144,7 @@ export const Network: React.FC = () => {
           <div className="flex items-center justify-between border-b border-neutral-100 dark:border-neutral-800 pb-3">
             <div>
               <h3 className="text-sm font-bold text-neutral-900 dark:text-neutral-100">
-                Network Topology Architecture (Section 18)
+                Network Topology Architecture
               </h3>
               <p className="text-xs text-neutral-500 dark:text-neutral-400">
                 Conceptual local physical & logical hierarchy. Click any connected node to inspect.
@@ -156,12 +156,23 @@ export const Network: React.FC = () => {
           </div>
 
           {/* Technical Diagram Container */}
-          <div className="py-4 flex flex-col items-center">
+          <div className="py-4 flex flex-col items-center overflow-x-auto">
             {/* 1. INTERNET NODE */}
             <div className="flex flex-col items-center">
-              <div className="px-5 py-2.5 rounded-md bg-neutral-100 dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-700 flex items-center gap-2 text-xs font-semibold text-neutral-800 dark:text-neutral-200">
-                <Globe className="w-4 h-4 text-sky-500" />
-                <span>WAN / INTERNET</span>
+              <div className="px-5 py-2.5 rounded-md bg-neutral-100 dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-700 flex flex-col items-center gap-1 text-xs font-semibold text-neutral-800 dark:text-neutral-200 shadow-2xs">
+                <div className="flex items-center gap-2">
+                  <Globe className="w-4 h-4 text-sky-500" />
+                  <span>WAN / INTERNET</span>
+                </div>
+                {networkInfo?.publicIp ? (
+                  <div className="flex items-center gap-1 font-mono text-[11px] text-sky-600 dark:text-sky-400 font-normal">
+                    <span>IP: {networkInfo.publicIp}</span>
+                  </div>
+                ) : (
+                  <span className="font-mono text-[10px] text-neutral-400 font-normal">
+                    IP: Local / Air-Gapped
+                  </span>
+                )}
               </div>
               {/* Connector line */}
               <div className="w-px h-8 bg-neutral-300 dark:bg-neutral-700" />

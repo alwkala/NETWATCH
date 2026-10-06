@@ -24,7 +24,7 @@ import (
 //go:embed all:frontend/dist
 var assets embed.FS
 
-var version = "0.1.0-alpha.1"
+var version = "0.2.0-alpha.1"
 
 func main() {
 	var b [24]byte

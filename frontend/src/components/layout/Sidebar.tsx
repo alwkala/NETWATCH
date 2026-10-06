@@ -9,23 +9,33 @@ import {
   Settings,
   ShieldCheck,
   Wifi,
-  Radio,
   Github,
-  ExternalLink
+  X
 } from 'lucide-react';
 
-export const Sidebar: React.FC = () => {
+interface SidebarProps {
+  mobileOpen?: boolean;
+  onMobileClose?: () => void;
+}
+
+export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen = false, onMobileClose }) => {
   const {
     activePage,
     navigateTo,
     devices,
     events,
-    networkInfo,
-    isScanning
+    networkInfo
   } = useNetwork();
 
   const onlineDevicesCount = devices.filter(d => d.status === 'online').length;
   const newDevicesCount = devices.filter(d => d.isNew).length;
+
+  const handleNav = (page: AppPage) => {
+    navigateTo(page);
+    if (onMobileClose) {
+      onMobileClose();
+    }
+  };
 
   const navItemClass = (page: AppPage) => {
     const isActive = activePage === page;
@@ -36,21 +46,32 @@ export const Sidebar: React.FC = () => {
     }`;
   };
 
-  return (
-    <aside className="w-56 shrink-0 bg-neutral-50 dark:bg-neutral-900/90 border-r border-neutral-200 dark:border-neutral-800 flex flex-col justify-between select-none">
+  const renderContent = (isMobile = false) => (
+    <>
       {/* Top Header & Navigation */}
       <div className="p-3">
-        {/* Logo Lockup */}
-        <div className="flex items-center gap-2.5 px-2 py-2 mb-4">
-          <img src="/favicon.svg" alt="NETWATCH" className="w-6 h-6 rounded shadow-xs shrink-0" />
-          <div>
-            <div className="text-sm font-bold tracking-tight text-neutral-900 dark:text-neutral-100 leading-none">
-              NETWATCH
-            </div>
-            <div className="text-[10px] text-neutral-500 dark:text-neutral-400 leading-none mt-1">
-              Desktop Edition
+        {/* Logo Lockup - STRICT INVARIANT: Header text must remain untouched */}
+        <div className="flex items-center justify-between px-2 py-2 mb-4">
+          <div className="flex items-center gap-2.5">
+            <img src="/favicon.svg" alt="NETWATCH" className="w-6 h-6 rounded shadow-xs shrink-0" />
+            <div>
+              <div className="text-sm font-bold tracking-tight text-neutral-900 dark:text-neutral-100 leading-none">
+                NETWATCH
+              </div>
+              <div className="text-[10px] text-neutral-500 dark:text-neutral-400 leading-none mt-1">
+                Desktop Edition
+              </div>
             </div>
           </div>
+          {isMobile && onMobileClose && (
+            <button
+              onClick={onMobileClose}
+              className="p-1 rounded text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 hover:bg-neutral-200 dark:hover:bg-neutral-800 transition-colors"
+              title="Close navigation"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
         </div>
 
         {/* Navigation Categories */}
@@ -61,7 +82,7 @@ export const Sidebar: React.FC = () => {
               Overview
             </div>
             <button
-              onClick={() => navigateTo('dashboard')}
+              onClick={() => handleNav('dashboard')}
               className={navItemClass('dashboard')}
             >
               <div className="flex items-center gap-2.5">
@@ -78,7 +99,7 @@ export const Sidebar: React.FC = () => {
             </div>
             <div className="space-y-0.5">
               <button
-                onClick={() => navigateTo('devices')}
+                onClick={() => handleNav('devices')}
                 className={navItemClass('devices')}
               >
                 <div className="flex items-center gap-2.5">
@@ -99,7 +120,7 @@ export const Sidebar: React.FC = () => {
               </button>
 
               <button
-                onClick={() => navigateTo('network')}
+                onClick={() => handleNav('network')}
                 className={navItemClass('network')}
               >
                 <div className="flex items-center gap-2.5">
@@ -109,18 +130,13 @@ export const Sidebar: React.FC = () => {
               </button>
 
               <button
-                onClick={() => navigateTo('scanner')}
+                onClick={() => handleNav('scanner')}
                 className={navItemClass('scanner')}
               >
                 <div className="flex items-center gap-2.5">
-                  <Radar className={`w-4 h-4 ${isScanning ? 'animate-spin text-emerald-500' : ''}`} />
+                  <Radar className="w-4 h-4" />
                   <span>Scanner</span>
                 </div>
-                {isScanning && (
-                  <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">
-                    ACTIVE
-                  </span>
-                )}
               </button>
             </div>
           </div>
@@ -131,7 +147,7 @@ export const Sidebar: React.FC = () => {
               Activity
             </div>
             <button
-              onClick={() => navigateTo('events')}
+              onClick={() => handleNav('events')}
               className={navItemClass('events')}
             >
               <div className="flex items-center gap-2.5">
@@ -161,7 +177,7 @@ export const Sidebar: React.FC = () => {
 
         {/* Settings button */}
         <button
-          onClick={() => navigateTo('settings')}
+          onClick={() => handleNav('settings')}
           className={navItemClass('settings')}
         >
           <div className="flex items-center gap-2.5">
@@ -187,7 +203,7 @@ export const Sidebar: React.FC = () => {
               <div className="min-w-0">
                 <div className="text-[10px] font-bold text-neutral-800 dark:text-neutral-200 truncate leading-tight flex items-center gap-1">
                   <span>NETWATCH</span>
-                  <span className="font-mono text-[9px] font-normal text-neutral-500 dark:text-neutral-400">v0.1.0</span>
+                  <span className="font-mono text-[9px] font-normal text-neutral-500 dark:text-neutral-400">v0.2.0-alpha.1</span>
                 </div>
                 <div className="text-[9px] text-neutral-500 dark:text-neutral-400 truncate leading-tight">
                   By <span className="font-semibold text-neutral-700 dark:text-neutral-300">Alwkala</span>
@@ -206,6 +222,33 @@ export const Sidebar: React.FC = () => {
           </div>
         </div>
       </div>
-    </aside>
+    </>
+  );
+
+  return (
+    <>
+      {/* Desktop Persistent Sidebar */}
+      <aside className="hidden md:flex w-56 shrink-0 bg-neutral-50 dark:bg-neutral-900/90 border-r border-neutral-200 dark:border-neutral-800 flex-col justify-between select-none">
+        {renderContent(false)}
+      </aside>
+
+      {/* Mobile Backdrop Overlay */}
+      {mobileOpen && (
+        <div
+          className="fixed inset-0 bg-black/60 backdrop-blur-xs z-40 md:hidden transition-opacity"
+          onClick={onMobileClose}
+          aria-hidden="true"
+        />
+      )}
+
+      {/* Mobile Slide-Over Drawer */}
+      <aside
+        className={`fixed inset-y-0 left-0 w-64 bg-neutral-50 dark:bg-neutral-900 border-r border-neutral-200 dark:border-neutral-800 flex flex-col justify-between select-none z-50 transition-transform duration-200 ease-in-out md:hidden shadow-2xl ${
+          mobileOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}
+      >
+        {renderContent(true)}
+      </aside>
+    </>
   );
 };

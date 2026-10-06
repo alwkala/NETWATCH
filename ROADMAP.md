@@ -32,14 +32,24 @@ No feature or diagnostic tool enters NETWATCH unless it passes three architectur
         │
 [M3: Settings & Database]     ✅ Completed (SQLite Settings, Auto-Scan, DB Compaction, Toasts, Autostart)
         │
-[M4: Identity & Trust]        🔄 In Progress (Randomized MACs, Device Merge, Allowlist, mDNS/NetBIOS)
+[M4: Discovery & Evidence]    ✅ Completed (Randomized MAC, Device Merge, Evidence Bus: mDNS/SSDP/NBNS)
         │
 [M5: Watchdog & Diagnostics]  📅 Planned (ARP Conflict Detection, Traceroute, Latency & Uptime Ledger)
         │
-[M6: Diff, Reports & QA]      📅 Planned (Snapshot Diff, Safe CSV/JSON Export, Playwright E2E)
+[M6: Diff, Reports & i18n]    📅 Planned (Snapshot Diff, 7-Language i18n, Safe Export, Playwright E2E)
         │
 [M7: Signed Production]       📅 Planned (SignPath.io Authenticode, MSI/NSIS, SBOM, Notices)
 ```
+
+### SemVer Release Alignment
+
+| Milestone | Release Target | SemVer Impact | Focus & Deliverables | Status |
+|---|:---:|:---:|---|:---:|
+| **M1 + M2** | `v0.1.0-alpha.1` | Initial Baseline | Core engine, Windows unprivileged probes, threat model, multi-OS CI | **Shipped** |
+| **M3 + M4** | `v0.2.0-alpha.1` | **MINOR** | Settings, auto-scan, toast notifications, multi-protocol evidence bus | **Ready** |
+| **M5** | `v0.3.0-alpha.1` | **MINOR** | Network watchdog, rogue gateway alerts, traceroute, latency trends | Planned |
+| **M6** | `v0.4.0-beta.1` | **MINOR** | Historical snapshot diffs, 7-language i18n, safe CSV/JSON exports, E2E | Planned |
+| **M7** | `v1.0.0` | **MAJOR** | Authenticode signing, Windows MSI/NSIS installers, public release | Planned |
 
 ---
 
@@ -113,7 +123,19 @@ No feature or diagnostic tool enters NETWATCH unless it passes three architectur
 
 ---
 
-### 📅 Milestone 6: Data Portability, Diff Engine & Quality Assurance
+### 📅 Milestone 6: Data Portability, Internationalization (i18n) & Quality Assurance
+- [ ] **Internationalization (i18n) & Multi-Language Architecture**:
+  - [ ] Lightweight, air-gapped i18n engine with zero external network requests and fully bundled local translation files.
+  - [ ] Bundled 7 core locale translation files:
+    - English (`en` — default fallback)
+    - Arabic (`ar` — native RTL layout direction, Arabic typography, and bidi-hardened strings)
+    - German (`de`)
+    - French (`fr`)
+    - Spanish (`es`)
+    - Japanese (`ja`)
+    - Simplified Chinese (`zh-CN`)
+  - [ ] Extensible JSON locale registry (`frontend/src/locales/<lang>.json`) with strictly typed translation keys, automatic fallback to `en`, and documentation for adding community translations without code refactoring.
+  - [ ] Persistent user language preference stored in SQLite settings (`GET/PUT /v1/settings` -> `settings.language`) with immediate UI re-rendering.
 - [ ] **Historical Diff & Digest Reports**:
   - [ ] Snapshot Diff Engine (`GET /v1/reports/diff?from=...&to=...`): calculate joined, departed, and IP-drifted devices between any two historical dates.
   - [ ] Scheduled local digest: weekly summary of new, active, and dormant devices.

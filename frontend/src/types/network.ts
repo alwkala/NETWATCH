@@ -32,6 +32,7 @@ export interface NetworkInfo {
   subnet: string;
   dns: string[];
   localIp: string;
+  publicIp?: string;
   broadcast: string;
   netmask: string;
   totalAddresses: number;

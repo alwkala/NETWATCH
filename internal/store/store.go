@@ -26,8 +26,9 @@ var ErrNotFound = errors.New("not found")
 // Known is a stored device plus engine bookkeeping that is not sent to the UI.
 type Known struct {
 	model.Device
-	Net    string // network key the device belongs to
-	Missed int    // consecutive scans in which the device was not seen
+	Net        string // network key the device belongs to
+	Missed     int    // consecutive scans in which the device was not seen
+	CustomType string // user-customized device type override
 }
 
 // HistoryRow is a per-device timeline entry before it has an ID.
@@ -188,6 +189,9 @@ var migrations = []string{
 		observed_at INTEGER NOT NULL
 	);
 	CREATE INDEX IF NOT EXISTS idx_network_contexts_ts ON network_contexts(observed_at DESC);`,
+
+	// v4: Custom Device Type override
+	`ALTER TABLE devices ADD COLUMN custom_type TEXT NOT NULL DEFAULT '';`,
 }
 
 func (s *Store) migrate(ctx context.Context) error {
@@ -224,7 +228,7 @@ func nullInt(p *int) any {
 	return *p
 }
 
-const deviceCols = `id, net, mac, ip, hostname, vendor, type, name, custom_alias, notes, os, status, is_new, missed, latency_ms, first_seen, last_seen, is_randomized_mac, trust_status, merged_into`
+const deviceCols = `id, net, mac, ip, hostname, vendor, type, name, custom_alias, notes, os, status, is_new, missed, latency_ms, first_seen, last_seen, is_randomized_mac, trust_status, merged_into, custom_type`
 
 func scanKnown(sc interface{ Scan(...any) error }) (Known, error) {
 	var (
@@ -235,9 +239,12 @@ func scanKnown(sc interface{ Scan(...any) error }) (Known, error) {
 		first, lst int64
 	)
 	err := sc.Scan(&k.ID, &k.Net, &k.MAC, &k.IP, &k.Hostname, &k.Vendor, &k.Type, &k.Name, &k.CustomAlias,
-		&k.Notes, &k.OS, &k.Status, &isNew, &k.Missed, &lat, &first, &lst, &isRand, &k.TrustStatus, &k.MergedInto)
+		&k.Notes, &k.OS, &k.Status, &isNew, &k.Missed, &lat, &first, &lst, &isRand, &k.TrustStatus, &k.MergedInto, &k.CustomType)
 	if err != nil {
 		return k, err
+	}
+	if k.CustomType != "" {
+		k.Type = k.CustomType
 	}
 	k.IsNew = isNew != 0
 	k.IsRandomizedMAC = isRand != 0
@@ -405,6 +412,11 @@ func (s *Store) UpdateDevice(ctx context.Context, id string, p model.DevicePatch
 			}
 		}
 	}
+	if p.Type != nil {
+		if _, err := tx.ExecContext(ctx, `UPDATE devices SET type = ?, custom_type = ? WHERE id = ?`, *p.Type, *p.Type, id); err != nil {
+			return err
+		}
+	}
 	return tx.Commit()
 }
 
@@ -428,13 +440,14 @@ func (s *Store) Commit(ctx context.Context, w Writeset) error {
 		if trust == "" {
 			trust = model.TrustUnknown
 		}
-		_, err := tx.ExecContext(ctx, `INSERT INTO devices (`+deviceCols+`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+		_, err := tx.ExecContext(ctx, `INSERT INTO devices (`+deviceCols+`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
 			ON CONFLICT(id) DO UPDATE SET mac=excluded.mac, ip=excluded.ip, hostname=excluded.hostname, vendor=excluded.vendor,
 				type=excluded.type, name=excluded.name, os=excluded.os, status=excluded.status, is_new=excluded.is_new,
 				missed=excluded.missed, latency_ms=excluded.latency_ms, last_seen=excluded.last_seen,
-				is_randomized_mac=excluded.is_randomized_mac, trust_status=excluded.trust_status, merged_into=excluded.merged_into`,
+				is_randomized_mac=excluded.is_randomized_mac, trust_status=excluded.trust_status, merged_into=excluded.merged_into,
+				custom_type=excluded.custom_type`,
 			k.ID, k.Net, k.MAC, k.IP, k.Hostname, k.Vendor, k.Type, k.Name, k.CustomAlias, k.Notes, k.OS, k.Status,
-			isNew, k.Missed, nullInt(k.LatencyMs), ms(k.FirstSeen), ms(k.LastSeen), isRand, trust, k.MergedInto)
+			isNew, k.Missed, nullInt(k.LatencyMs), ms(k.FirstSeen), ms(k.LastSeen), isRand, trust, k.MergedInto, k.CustomType)
 		if err != nil {
 			return fmt.Errorf("upsert %s: %w", k.ID, err)
 		}

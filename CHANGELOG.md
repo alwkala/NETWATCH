@@ -7,7 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v0.2.0-alpha.1] - 2026-10-06
+
 ### Added
+- **Device Type & Icon Customization**:
+  - Added user-customizable device type selector with live icon preview in `DeviceDetails.tsx`.
+  - Added `type` to `DevicePatch` wire contract and `PATCH /v1/devices/{id}` endpoint with server-side validation.
+  - Added SQLite schema migration v4 with `custom_type` column, guaranteeing user-defined classifications and icons are permanently preserved against heuristic overwrites during background rescans.
+- **WAN Public IP Discovery & Topology Integration**:
+  - Implemented lightweight RFC 5389 STUN NAT traversal (`internal/netenv/wan.go`) discovering the external public IPv4 address over raw UDP while maintaining zero-egress HTTP compliance.
+  - Added `publicIp` to `NetworkInfo` wire contract and displayed the external address directly on the `WAN / INTERNET` node in `Network.tsx`.
+- **UI Ergonomics & Mobile-First Responsive Polish (/tidyfactor-styler)**:
+  - Simplified global scan action button label from `Scan Network` to `Scan`.
+  - Removed outdated section annotation `(Section 18)` from Network Topology Architecture title.
+  - Implemented mobile-first responsive layout with slide-over drawer navigation and hamburger toggle in `Sidebar.tsx` and `TopBar.tsx`, while strictly preserving Sidebar brand identity invariants.
+  - Enhanced responsive grid wrapping in `DeviceDetails.tsx` and horizontal scroll safety in `Network.tsx` topology diagram.
 - **Multi-Protocol Discovery & Evidence Bus (M4)**:
   - Implemented `DiscoveryProbe` interface and unified `DiscoveryScope` contract in `internal/engine/probe.go` and `internal/model/evidence.go`.
   - Added NetBIOS Name Service (NBNS) directed UDP 137 query prober (`internal/netenv/nbns.go`) extracting RFC 1002 name table and 6-byte Unit ID (hardware MAC address).
@@ -184,6 +198,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Replaced competitor matrix in `README.md` with verifiable Design Principles & Architectural Guarantees.
   - Formatted all Go sources with `gofmt -w`.
 
-[Unreleased]: https://github.com/alwkala/NETWATCH/compare/v0.1.0-alpha.1...HEAD
+[Unreleased]: https://github.com/alwkala/NETWATCH/compare/v0.2.0-alpha.1...HEAD
+[v0.2.0-alpha.1]: https://github.com/alwkala/NETWATCH/compare/v0.1.0-alpha.1...v0.2.0-alpha.1
 [0.1.0-alpha.1]: https://github.com/alwkala/NETWATCH/releases/tag/v0.1.0-alpha.1
 

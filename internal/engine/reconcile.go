@@ -151,7 +151,10 @@ func reconcile(in reconcileIn) reconcileOut {
 			}
 			k.MergedInto = prev.MergedInto
 			k.FirstSeen, k.IsNew = prev.FirstSeen, prev.IsNew
-			if k.Type == model.TypeUnknown && prev.Type != model.TypeUnknown {
+			k.CustomType = prev.CustomType
+			if k.CustomType != "" {
+				k.Type = k.CustomType
+			} else if k.Type == model.TypeUnknown && prev.Type != model.TypeUnknown {
 				k.Type = prev.Type // never forget a classification because this scan saw fewer ports
 			}
 			if k.Hostname == "" {

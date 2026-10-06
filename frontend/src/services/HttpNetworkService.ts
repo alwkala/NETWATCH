@@ -134,6 +134,7 @@ export class HttpNetworkService implements NetworkService {
     if ('notes' in updates) patch.notes = updates.notes ?? '';
     if ('isNew' in updates) patch.isNew = !!updates.isNew;
     if ('trustStatus' in updates) patch.trustStatus = updates.trustStatus;
+    if ('type' in updates && updates.type) patch.type = updates.type;
     return toDevice(await this.request<WireDevice>('PATCH', `/v1/devices/${encodeURIComponent(id)}`, patch));
   }
 

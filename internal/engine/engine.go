@@ -72,6 +72,10 @@ type Engine struct {
 
 	mon       monitor
 	portScans sync.Map // protects against parallel port probe storms on same device
+
+	wanMu sync.Mutex
+	wanAt time.Time
+	wanIP string
 }
 
 func New(o Options) *Engine {
@@ -265,6 +269,7 @@ func (e *Engine) NetworkInfo(ctx context.Context) (model.NetworkInfo, error) {
 	if hostBits := 32 - p.Bits(); hostBits >= 2 && hostBits <= 30 {
 		out.TotalAddresses = (1 << hostBits) - 2
 	}
+	out.PublicIP = e.getPublicIP(ctx)
 	if an, err := e.active(ctx); err == nil {
 		if ks, err := e.st.ListKnown(ctx, an.Key); err == nil {
 			for _, k := range ks {
@@ -275,6 +280,29 @@ func (e *Engine) NetworkInfo(ctx context.Context) (model.NetworkInfo, error) {
 		}
 	}
 	return out, nil
+}
+
+func (e *Engine) getPublicIP(ctx context.Context) string {
+	e.wanMu.Lock()
+	if time.Since(e.wanAt) < 2*time.Minute && e.wanIP != "" {
+		cached := e.wanIP
+		e.wanMu.Unlock()
+		return cached
+	}
+	e.wanMu.Unlock()
+
+	tCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	defer cancel()
+	ip := netenv.DiscoverPublicIP(tCtx)
+
+	e.wanMu.Lock()
+	if ip != "" {
+		e.wanIP = ip
+		e.wanAt = time.Now()
+	}
+	res := e.wanIP
+	e.wanMu.Unlock()
+	return res
 }
 
 // Devices lists the inventory of the network the machine is on now.
@@ -361,6 +389,17 @@ func (e *Engine) UpdateDevice(ctx context.Context, id string, p model.DevicePatc
 		ts := *p.TrustStatus
 		if ts != model.TrustKnown && ts != model.TrustGuest && ts != model.TrustUnknown {
 			return nil, fmt.Errorf("%w: invalid trust status (must be known, guest, or unknown)", ErrInvalid)
+		}
+	}
+	if p.Type != nil {
+		t := strings.TrimSpace(*p.Type)
+		switch t {
+		case model.TypeRouter, model.TypeComputer, model.TypePhone, model.TypeTablet,
+			model.TypeTV, model.TypePrinter, model.TypeCamera, model.TypeIoT,
+			model.TypeServer, model.TypeNetworkDevice, model.TypeGameConsole, model.TypeUnknown:
+			p.Type = &t
+		default:
+			return nil, fmt.Errorf("%w: invalid device type %q", ErrInvalid, t)
 		}
 	}
 	e.commitMu.Lock()

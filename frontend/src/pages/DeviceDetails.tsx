@@ -20,7 +20,22 @@ import {
   Copy,
   AlertTriangle
 } from 'lucide-react';
-import { TrustStatus } from '../types/device';
+import { TrustStatus, DeviceType } from '../types/device';
+
+const DEVICE_TYPE_OPTIONS: { type: DeviceType; label: string }[] = [
+  { type: 'Computer', label: 'Computer / PC' },
+  { type: 'Phone', label: 'Phone / Mobile' },
+  { type: 'Tablet', label: 'Tablet' },
+  { type: 'Router', label: 'Router / Gateway' },
+  { type: 'Server', label: 'Server / NAS' },
+  { type: 'Network Device', label: 'Switch / AP / Network' },
+  { type: 'Printer', label: 'Printer' },
+  { type: 'TV', label: 'Smart TV / Display' },
+  { type: 'Camera', label: 'IP Camera' },
+  { type: 'Game Console', label: 'Game Console' },
+  { type: 'IoT', label: 'IoT / Smart Device' },
+  { type: 'Unknown', label: 'Unknown' },
+];
 
 export const DeviceDetails: React.FC = () => {
   const {
@@ -43,6 +58,7 @@ export const DeviceDetails: React.FC = () => {
   const [isScanningPorts, setIsScanningPorts] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [customAlias, setCustomAlias] = useState('');
+  const [deviceType, setDeviceType] = useState<DeviceType>(selectedDevice?.type || 'Unknown');
   const [notes, setNotes] = useState('');
   const [trustStatus, setTrustStatus] = useState<TrustStatus>('unknown');
   const [isMerging, setIsMerging] = useState(false);
@@ -99,6 +115,7 @@ export const DeviceDetails: React.FC = () => {
     setCustomAlias(selectedDevice.customAlias || selectedDevice.name);
     setNotes(selectedDevice.notes || '');
     setTrustStatus(selectedDevice.trustStatus || 'unknown');
+    setDeviceType(selectedDevice.type || 'Unknown');
     setIsEditing(true);
   };
 
@@ -106,7 +123,8 @@ export const DeviceDetails: React.FC = () => {
     await updateDevice(selectedDevice.id, {
       customAlias: customAlias.trim() || undefined,
       notes: notes.trim() || undefined,
-      trustStatus
+      trustStatus,
+      type: deviceType,
     });
     setIsEditing(false);
   };
@@ -349,7 +367,7 @@ export const DeviceDetails: React.FC = () => {
             <div className="text-xs font-semibold text-neutral-700 dark:text-neutral-300">
               Edit Device Details
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
               <div>
                 <label className="text-[11px] text-neutral-500 block mb-1">
                   Custom Friendly Name
@@ -360,6 +378,27 @@ export const DeviceDetails: React.FC = () => {
                   onChange={e => setCustomAlias(e.target.value)}
                   className="w-full text-xs p-1.5 rounded bg-neutral-50 dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-700 text-neutral-900 dark:text-neutral-100"
                 />
+              </div>
+              <div>
+                <label className="text-[11px] text-neutral-500 block mb-1">
+                  Device Type & Icon
+                </label>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-7 h-7 shrink-0 rounded bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center text-neutral-700 dark:text-neutral-300 border border-neutral-300 dark:border-neutral-700 shadow-2xs">
+                    <DeviceTypeIcon type={deviceType} className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                  </div>
+                  <select
+                    value={deviceType}
+                    onChange={e => setDeviceType(e.target.value as DeviceType)}
+                    className="w-full text-xs p-1.5 rounded bg-neutral-50 dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-700 text-neutral-900 dark:text-neutral-100 font-medium"
+                  >
+                    {DEVICE_TYPE_OPTIONS.map(opt => (
+                      <option key={opt.type} value={opt.type}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
               <div>
                 <label className="text-[11px] text-neutral-500 block mb-1">

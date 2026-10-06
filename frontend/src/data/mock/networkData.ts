@@ -9,6 +9,7 @@ export const initialMockNetworkInfo: NetworkInfo = {
   subnet: '192.168.1.0/24',
   dns: ['192.168.1.1', '1.1.1.1'],
   localIp: '192.168.1.24',
+  publicIp: '197.38.12.84',
   broadcast: '192.168.1.255',
   netmask: '255.255.255.0',
   totalAddresses: 254,

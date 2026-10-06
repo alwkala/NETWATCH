@@ -1,194 +1,183 @@
-# NETWATCH — Local Network Intelligence & Device Inventory
+# NETWATCH
 
 <div align="center">
 
-### Privacy-First Local-First Network Discovery, Inventory & Asset Intelligence
+### Know Every Device on Your Network. Without the Cloud Watching.
 
+**A private, local-first network intelligence and asset ledger desktop app for Windows, Linux, and macOS.**
+
+[![Release](https://img.shields.io/github/v/release/alwkala/NETWATCH?include_prereleases&color=blue&label=Latest%20Release)](https://github.com/alwkala/NETWATCH/releases/tag/v0.2.0-alpha.1)
 [![CI](https://github.com/alwkala/NETWATCH/actions/workflows/ci.yml/badge.svg)](https://github.com/alwkala/NETWATCH/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/github/v/release/alwkala/NETWATCH?include_prereleases&color=blue&label=Release)](https://github.com/alwkala/NETWATCH/releases/tag/v0.1.0-alpha.1)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE-MIT)
-[![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-green.svg)](LICENSE-APACHE)
-[![Go Version](https://img.shields.io/badge/Go-1.24%2B-00ADD8.svg?logo=go)](go.mod)
-[![React](https://img.shields.io/badge/React-19-61DAFB.svg?logo=react)](frontend/package.json)
-[![Privacy](https://img.shields.io/badge/Privacy-100%25_Local--First-success.svg)](#privacy-invariants)
-
-<a href="#downloads--platform-support"><b>Download</b></a> •
-<a href="#beyond-ephemeral-scanning-asset-intelligence"><b>Why Asset Intelligence</b></a> •
-<a href="#design-principles--architectural-guarantees"><b>Design Principles</b></a> •
-<a href="ROADMAP.md"><b>Roadmap</b></a> •
-<a href="THREAT_MODEL.md"><b>Threat Model</b></a> •
-<a href="CONTRIBUTING.md"><b>Contributing</b></a> •
-<a href="CHANGELOG.md"><b>Changelog</b></a>
+[![License: MIT & Apache 2.0](https://img.shields.io/badge/License-MIT%20%2F%20Apache%202.0-blue.svg)](LICENSE-MIT)
+[![Privacy Guarantee](https://img.shields.io/badge/Privacy-100%25_Local--First-emerald.svg)](#privacy-guarantee)
+[![Portable App](https://img.shields.io/badge/Windows-Portable_No_Install-blue.svg)](#quick-start)
 
 <br>
 
-> ## Know Every Device on Your LAN. Without the Cloud Watching.
-> **NETWATCH is not an ephemeral scanner that forgets everything upon closing; it is a persistent local network intelligence suite. It continuously tracks subnet assets, reconciles state changes over time (joins, departures, IP drifts), and preserves historical timelines inside a sovereign SQLite ledger — 100% offline, zero cloud, zero telemetry.**
->
-> *Instant LAN discovery, historical reconciliation, and persistent device tracking — 100% offline, zero cloud, zero telemetry.*
+<img src="docs/Snapshots/home-desktop-dark-theme.png" alt="NETWATCH Dashboard" width="100%" style="border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.3);" />
+
+<br><br>
+
+<p align="center">
+  <a href="https://github.com/alwkala/NETWATCH/releases/tag/v0.2.0-alpha.1"><b>⬇️ Download Windows (.exe)</b></a> •
+  <a href="#see-it-in-action"><b>📸 Screenshots & Tour</b></a> •
+  <a href="#how-it-works"><b>⚡ How It Works</b></a> •
+  <a href="docs/ARCHITECTURE.md"><b>🛠️ Technical Architecture</b></a> •
+  <a href="https://github.com/alwkala/NETWATCH/wiki"><b>🌐 GitHub Wiki</b></a>
+</p>
 
 </div>
 
 ---
 
-## Beyond Ephemeral Scanning: Asset Intelligence
+## Why NETWATCH?
 
-Traditional network scanners (like *Advanced IP Scanner* or *Angry IP Scanner*) are momentary utilities: they perform a fire-and-forget sweep, render a transient table, and discard all state when closed. They have no memory, no temporal awareness, and cannot distinguish a brand new intruder from a stable home workstation.
+> *"Scanning tells you what's there now.  
+> Inventory tells you what changed."*
 
-In NETWATCH, **scanning is only the sensor (ingestion mechanism)**. The true product is the **Local Asset Ledger & Reconciliation Engine**:
+When you connect to Wi-Fi at home, in the office, or at a client site, you often want answers to simple, critical questions:
+- *What devices are connected right now?*
+- *What is that mystery IP address on my subnet?*
+- *Who joined the network today? Did my server reboot?*
+- *Did my phone get assigned a new IP address?*
 
-| Capability | Ephemeral Scanners | NETWATCH (Local Network Intelligence) |
-|---|---|---|
-| **Core Question** | *"What is responding right now?"* | *"What was here? What changed? Who joined, left, or drifted IP? When?"* |
-| **State & Memory** | Ephemeral (wiped on app exit) | Persistent local [SQLite](internal/store) database across reboots |
-| **Asset Lifecycle** | No concept of first seen / history | Dedicated timeline tracking joins, departures, and IP migrations |
-| **Flap Resistance** | Single missed ping triggers disconnect | Threshold reconciliation (`misses = 2`) prevents sleep-mode false alerts |
-| **New Device Detection** | Undifferentiated list row | Explicit `isNew` status badge until acknowledged by user |
-| **Data Privacy** | Cloud uploads / external API calls common | **100% Sovereign**: Air-gapped IEEE OUI lookup, zero external requests, zero telemetry |
+Traditional tools (like *Advanced IP Scanner* or *Angry IP Scanner*) are momentary utilities: they perform a single sweep, show a plain table, and **discard everything the moment you close them**.
 
----
-
-## Design Principles & Architectural Guarantees
-
-NETWATCH is engineered around four uncompromising design invariants:
-
-1. **100% Offline & Sovereign**: Network data never leaves your computer. No user account, no cloud relay, no telemetry, and zero external API calls.
-2. **Local Hardware Fingerprinting**: MAC vendor lookups use an embedded, offline IEEE OUI database (`internal/oui/ieee-oui.txt`). Your hardware addresses are never transmitted externally.
-3. **Unprivileged Execution**: Interacts directly with native user-mode OS APIs (`iphlpapi.dll` on Windows). Does not require administrator privileges, UAC elevation, or third-party packet capture drivers (such as WinPcap or Npcap).
-4. **Flap-Resistant Reconciliation**: Devices are marked offline only after consecutive missed sweeps (`misses = 2`), preventing false disconnect alerts when Wi-Fi devices enter low-power sleep states.
+**NETWATCH is different.**  
+Scanning is just the ingestion sensor. Behind the scenes, NETWATCH maintains a **persistent local SQLite asset ledger**. It remembers every host that ever touched your subnet, tracks joins and departures, alerts you to IP changes, and lets you organize your network into a clean, searchable inventory — **100% offline, with zero cloud and zero telemetry.**
 
 ---
 
-## Architecture Overview
+## Key Capabilities
 
-```
-React 19 UI  ──HTTP + SSE──▶  Go Core Engine (127.0.0.1:random, Bearer Token)  ──▶  SQLite Store
- (Wails/WebView2)              discovery · scan · diff/events · fingerprint           (%LOCALAPPDATA%\NetWatch\data)
-```
+### ⚡ 1. Instant Subnet Discovery (No Admin Needed)
+Discover every active computer, phone, printer, smart TV, and IoT sensor on your `/24` subnet in seconds.  
+NETWATCH uses unprivileged user-mode operating system APIs — **no Administrator rights, no UAC popups, and no third-party packet capture drivers (WinPcap/Npcap) required**.
 
-- **`internal/netenv`**: Operating system network access abstracted behind an `Env` interface:
-  - **Windows**: Unprivileged native `iphlpapi.dll` (`IcmpSendEcho`, `GetIpNetTable`, `SendARP`, `GetAdaptersAddresses`).
-  - **Linux**: `/proc/net/arp` and socket implementation for development and daemon mode.
-  - **Portable**: RFC-compliant Wake-on-LAN (WoL), TCP port probing, reverse DNS.
-- **`internal/engine`**: Active discovery engine with concurrent subnet sweeps, reconciliation diff, and offline detection (`OfflineAfterMisses = 2` consecutive missed scans to prevent sleep-mode flapping).
-- **`internal/store`**: Embedded SQLite database persisting device inventory, state changes, and historical event logs.
-- **`internal/api`**: REST and Server-Sent Events (SSE) server bound strictly to loopback (`127.0.0.1`) with per-session token authorization and Host/Origin validation.
-- **`frontend/`**: Modern React 19 + TypeScript + Vite + Tailwind CSS desktop interface with bundled air-gapped typography (*Plus Jakarta Sans* & *JetBrains Mono*).
+### 🏷️ 2. Air-Gapped Hardware Fingerprinting
+Instantly identifies manufacturers (Apple, Intel, Samsung, Espressif, Raspberry Pi, ZTE) using an **embedded, offline IEEE OUI database**. Your hardware MAC addresses are never sent to external lookup APIs.
 
----
+### 🎨 3. Personalized Device Inventory & Icons
+Give your hardware friendly names (e.g., *"Living Room Apple TV"*, *"Proxmox Lab 01"*), select custom device categories, and choose matching icons (`Computer`, `Phone`, `Server`, `Router`, `IoT`, `Camera`, `Printer`, `Game Console`). Your customizations are saved permanently and are never overwritten by rescans.
 
-## Key Features
+### 🛡️ 4. Private MAC Detection & Device Merging
+Modern smartphones (iOS, Android) and Windows 10/11 rotate their Wi-Fi MAC addresses for privacy. NETWATCH automatically flags **"Private MAC"** addresses and provides a **1-click Device Merge tool** to unify fragmented device histories under one record.
 
-- ⚡ **Super Fast Subnet Discovery**: Active, unprivileged ARP and ICMP sweeps across private IPv4 LANs with TCP fallback.
-- 🏷️ **Local Hardware Fingerprinting**: Local MAC OUI lookup via embedded IEEE database (zero external network requests).
-- ⏱️ **Flap-Resistant Status Tracking**: Smart reconciliation marks devices offline only after two consecutive missed sweeps.
-- 🔌 **Integrated Network Diagnostics**: Unprivileged Ping with latency measurement, TCP port probing, and Wake-on-LAN (WoL) transmission.
-- 📜 **Historical Network Timeline**: Persistent SQLite log tracking when devices join, leave, or change IP addresses.
-- 🛡️ **100% Offline & Air-Gapped**: Zero cloud accounts, zero telemetry, and bundled fonts with zero external CDN dependencies.
+### 🤝 5. Three-Tier Trust Management
+Organize your devices into trust levels:
+- **`Known`**: Approved assets (your workstations, family phones, home servers).
+- **`Guest`**: Temporary visitors.
+- **`Unknown`**: Newly discovered or unrecognized hardware that needs inspection.
 
----
+### 🌐 6. Visual Network Topology & Public IP
+Inspect your local network hierarchy: WAN Internet gateway, default router, broadcast domain, and connected endpoints. Automatically resolves your network's external public IP over lightweight STUN (UDP) without cloud tracking.
 
-## Downloads & Platform Support
+### ⏱️ 7. Flap-Resistant State Tracking
+Low-power Wi-Fi devices sleep frequently to save battery. NETWATCH only marks a device offline after consecutive missed sweeps, preventing annoying false disconnect alarms.
 
-| Operating System | Architecture | Package Format | Status |
-|:---|:---|:---|:---|
-| **Windows 10 / 11** | `x64` | Standalone `.exe` ([Download v0.1.0-alpha.1](https://github.com/alwkala/NETWATCH/releases/tag/v0.1.0-alpha.1)) | **Validated & Active** ([Build Instructions](#build-the-desktop-app-windows)) |
-| **Linux** | `amd64`, `arm64` | Daemon / CLI (`netwatchd`) | **Development / Headless** |
-| **macOS** | `Apple Silicon`, `Intel` | Wails `.app` / `.dmg` | **Roadmap (M7)** |
+### 🔌 8. Built-In Network Diagnostics
+- **Live ICMP Ping**: Real-time round-trip latency graph and packet loss measurement.
+- **Wake-on-LAN (WoL)**: Send magic broadcast packets to wake sleeping PCs on your LAN.
+- **Port Scanner**: Check open TCP service ports (HTTP, SSH, SMB, RDP, RTSP).
+- **Desktop Toast Notifications**: Optional Windows notifications when unknown devices appear or gateways change.
 
 ---
 
-## Privacy & Security Invariants
+## Who Is NETWATCH For?
 
-- **No Remote Telemetry**: Network configurations, IP mappings, and MAC addresses never leave the host system.
-- **Loopback Isolation**: The local API binds exclusively to `127.0.0.1` on an ephemeral port. Web pages open in local browsers cannot access the engine.
-- **Authentic Data Only**: Unknown fields remain labeled `Unknown`. NETWATCH never invents speculative health scores or simulated threat indicators.
-- **Formal Threat Model**: Full STRIDE analysis and mitigations documented in [THREAT_MODEL.md](THREAT_MODEL.md).
+| Role | How NETWATCH Helps You |
+|---|---|
+| 🏠 **Home Lab & Self-Hosters** | Track your Raspberry Pis, NAS drives, Proxmox clusters, and ESP32 home automation sensors without setting up heavy enterprise agents. |
+| 💻 **DevOps & Remote Workers** | Instantly audit client networks or home office LANs. Verify IP allocations, test gateway latency, and check open service ports. |
+| 🛡️ **Privacy Advocates** | Audit every device in your home without trusting third-party cloud scanners or sending your home network topology to remote servers. |
+| 🏢 **Small Office & IT Techs** | Know immediately when an unrecognized laptop plugs into the office switch, spot IP conflicts, and maintain an up-to-date asset ledger. |
 
 ---
 
-## Quick Start & Development
+## See It in Action
 
-### Prerequisites
-- Go 1.24+
-- Node.js 20+ & npm
+<table width="100%">
+  <tr>
+    <td width="50%" valign="top">
+      <h4 align="center">Real-Time Asset Ledger</h4>
+      <img src="docs/Snapshots/home-desktop-dark-theme.png" alt="Device Ledger" width="100%" />
+      <p align="center"><em>Searchable list of all network devices with latency sparklines, vendors, and status indicators.</em></p>
+    </td>
+    <td width="50%" valign="top">
+      <h4 align="center">Subnet & Network Topology</h4>
+      <img src="docs/Snapshots/nodes-desktop-dark-theme.png" alt="Topology View" width="100%" />
+      <p align="center"><em>Visual physical and logical network hierarchy showing WAN Public IP, router, and connected endpoints.</em></p>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <h4 align="center">Device Dossier & Customization</h4>
+      <img src="docs/Snapshots/settings-desktop-dark-theme.png" alt="Device Inspector" width="100%" />
+      <p align="center"><em>Customize friendly names, device types, icons, trust status, and inspect multi-protocol evidence (mDNS, SSDP, NBNS).</em></p>
+    </td>
+    <td width="50%" valign="top">
+      <h4 align="center">Activity Timeline & Audit Trail</h4>
+      <img src="docs/Snapshots/logs-desktop-dark-theme.png" alt="Activity Logs" width="100%" />
+      <p align="center"><em>Chronological timeline recording when devices join, depart, change IP, or merge records.</em></p>
+    </td>
+  </tr>
+</table>
 
+<div align="center">
+  <p><strong>Mobile-First Responsive Design</strong>: Seamlessly inspect your network from phones, tablets, or narrow laptop viewports.</p>
+  <img src="docs/Snapshots/home-mobile-full.png" alt="NETWATCH Mobile View" width="320px" style="border-radius: 8px; border: 1px solid #444;" />
+</div>
+
+---
+
+## Quick Start
+
+### Windows (Recommended)
+1. Download **`netwatch.exe`** from the [Latest Release](https://github.com/alwkala/NETWATCH/releases/tag/v0.2.0-alpha.1).
+2. Double-click to run.  
+   - **No installation needed** (portable single-file executable).
+   - **No administrator elevation required**.
+   - Your data is stored locally in `%LOCALAPPDATA%\NetWatch\data\network.db`.
+
+### Linux & Headless Servers
+For headless machines, continuous background monitoring, or Linux servers:
 ```bash
-# Terminal 1: Run the Go headless daemon (prints local URL & bearer token)
-go run ./cmd/netwatchd -origin http://localhost:3000
+# Clone the repository
+git clone https://github.com/alwkala/NETWATCH.git && cd NETWATCH
 
-# Terminal 2: Run the frontend development server
-cd frontend
-npm install
-npm run dev
-# Open the printed URL with ?api=<baseUrl>&token=<token>
+# Run the standalone headless daemon
+go run ./cmd/netwatchd
 ```
-
-> **Security Note**: Passing `-token` on the command line to `netwatchd` makes it visible in the operating system's process table (`ps` / Task Manager). This is intended for local development only.
-
-### Build the Desktop App (Windows)
-
-Ensure the frontend is compiled into `frontend/dist` before building the standalone Windows binary:
-
-```bash
-# 1. Build the production web bundle
-cd frontend
-npm ci
-npm run build
-cd ..
-
-# 2. Build the standalone executable
-go build -tags desktop,production -ldflags "-w -s -H windowsgui" -o build/bin/netwatch.exe .
-```
-
-* Data folder: `%LOCALAPPDATA%\NetWatch\data\network.db`
-* Rotating log: `%LOCALAPPDATA%\NetWatch\data\netwatch.log` (5 MB cap with 3 backup rotations)
 
 ---
 
-## Troubleshooting
+## Privacy Guarantee
 
-<details>
-<summary><b>Click to expand common questions & diagnostics</b></summary>
+NETWATCH was built around a non-negotiable philosophy: **"Your network data belongs to you."**
 
-### 1. Gateway or devices missing during scan
-Ensure your network profile is set to **Private Network** in Windows Settings. Certain third-party firewalls block ICMP Echo replies. NETWATCH relies on both ARP and ICMP for discovery.
-
-### 2. Viewing local application logs
-You can inspect live logs generated by the engine at:
-```powershell
-Get-Content -Wait $env:LOCALAPPDATA\NetWatch\data\netwatch.log
-```
-Or click **Open Data Folder** directly inside the Settings page in NETWATCH.
-
-### 3. Running tests locally
-```bash
-# Go unit tests & race detector
-go test -race ./...
-
-# Frontend typecheck & build
-cd frontend && npm run lint && npm run build
-```
-
-</details>
+- **Zero Cloud Uploads**: Network mappings, IP addresses, and MAC addresses never leave your machine.
+- **Zero Telemetry**: No analytics, no tracking beacons, no accounts.
+- **Local SQLite Storage**: All history and settings are stored in an open SQLite database on your local disk.
+- **Air-Gapped Typography**: All fonts (*Plus Jakarta Sans* & *JetBrains Mono*) are bundled inside the app. No calls to Google Fonts or remote CDNs.
+- **Automated CI Security Gate**: An automated CI test inspects every commit to ensure no external HTTP requests can be introduced.
 
 ---
 
-## Roadmap & Governance
+## Documentation & Deep Dives
 
-- [ROADMAP.md](ROADMAP.md) — Public milestones and technical progress (M1–M7).
-- [THREAT_MODEL.md](THREAT_MODEL.md) — STRIDE security model and boundary definitions.
-- [INCIDENT_RESPONSE.md](INCIDENT_RESPONSE.md) — Security incident response protocols.
-- [CONTRIBUTING.md](CONTRIBUTING.md) — Guidelines for code, documentation, and design contributions.
-- [SECURITY.md](SECURITY.md) — Vulnerability disclosure policy and SLAs.
-- [CONTRIBUTORS.md](CONTRIBUTORS.md) — Core team and contributor acknowledgments.
+Looking for deep technical architecture, threat models, or contributor runbooks?
+
+- [Technical Architecture Guide](docs/ARCHITECTURE.md) — Comprehensive guide to the Go engine, React 19 UI, and IPC.
+- [GitHub Wiki](https://github.com/alwkala/NETWATCH/wiki) — Full wiki documentation, subsystem deep dives, and operational runbooks.
+- [Public Roadmap (M1–M7)](ROADMAP.md) — Milestone progress and future capabilities.
+- [Threat Model (STRIDE)](THREAT_MODEL.md) — Security boundaries, trust domains, and threat analysis.
+- [Release Changelog](CHANGELOG.md) — Detailed historical release notes following Keep a Changelog.
+- [Security Policy](SECURITY.md) — Vulnerability reporting and responsible disclosure policy.
+- [Contributing Guidelines](CONTRIBUTING.md) — How to contribute code, documentation, and design.
 
 ---
 
 ## License
 
-NETWATCH is dual-licensed under both:
-- **[MIT License](LICENSE-MIT)**
-- **[Apache License 2.0](LICENSE-APACHE)**
-
+NETWATCH is dual-licensed under both the **[MIT License](LICENSE-MIT)** and the **[Apache License 2.0](LICENSE-APACHE)**.  
 You may choose either license at your option.
