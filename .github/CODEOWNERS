@@ -1,0 +1,14 @@
+# /* Pre-emit critique: P5 H5 E5 S5 R5 V5 D5 */
+# Global fallback
+*                   @alwkala
+
+# CI/CD & Security Policies
+/.github/workflows/ @alwkala
+/SECURITY.md        @alwkala
+
+# Go Core Engine & OS Adapters
+/internal/          @alwkala
+/cmd/               @alwkala
+
+# Frontend Application
+/frontend/          @alwkala

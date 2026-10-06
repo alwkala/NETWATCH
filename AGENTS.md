@@ -72,13 +72,12 @@ Done: engine v0.1 (discovery, scan quick/full, diff/events, SQLite, ping, WoL, p
 UI wired to the engine, security checks, simulated-network tests.
 **Verified on real Windows**: iphlpapi ARP (`GetIpNetTable`), unprivileged ICMP (`IcmpSendEcho`), adapter and DNS discovery (`GetAdaptersAddresses`), live LAN scan (`192.168.1.0/24`), rotating file logging (`%LOCALAPPDATA%\NetWatch\data\netwatch.log`), and standalone GUI build (`build/bin/netwatch.exe`).
 Known gaps: SSID (UI falls back to interface name), mDNS/NetBIOS/SSDP names, DHCP info, settings are UI-only
-(scan interval, notifications, tray, start-with-Windows are not persisted or applied), no API/store/netenv unit tests,
-no CI, installer/signing, icon/branding.
+(scan interval, notifications, tray, start-with-Windows are not persisted or applied), unit tests for api/store/netenv helpers,
+installer/signing, icon/branding.
 
 ## 6. Roadmap (do in this order; one milestone per PR)
 - [x] **M1 – Validate on Windows**: verified Go engine on real LAN, iphlpapi ARP & ICMP echo, adapter discovery, Open Data Folder wired, built standalone Windows executable (`build/bin/netwatch.exe`), and added rotating file logging (`netwatch.log`).
-- [ ] **M2 – Tests & CI**: tests for `store`, `api` (auth, Host/Origin, SSE), `netenv` parsing helpers; GitHub Actions for
-`go test -race`, `GOOS=windows go build`, frontend typecheck/build; Playwright smoke against `netwatchd` with a simulated env (`-demo` flag).
+- [ ] **M2 – Tests & CI**: GitHub Actions established for `go test -race` (Ubuntu), `go test` + `GOOS=windows go build` (Windows), and frontend typecheck/build; Dependabot and OSS governance files configured; pending unit tests for `store`, `api` (auth, Host/Origin, SSE), `netenv` parsing helpers, and Playwright smoke against `netwatchd` with `-demo`.
 **M3 – Real settings**: persist settings in SQLite (`GET/PUT /v1/settings`); scheduled auto-scan with the chosen interval;
 Windows toast notifications for new device / offline / network change; tray + start minimized + launch at startup (HKCU Run key).
 **M4 – Better identity**: mDNS, NetBIOS, SSDP/UPnP, DHCP lease info; SSID via WLAN API; improved classification with confidence

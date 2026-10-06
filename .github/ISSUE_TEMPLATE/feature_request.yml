@@ -1,0 +1,38 @@
+# /* Pre-emit critique: P5 H5 E5 S5 R5 V5 D5 */
+name: "Feature Proposal"
+description: "Suggest an idea or new diagnostic capability for NETWATCH"
+title: "[FEATURE]: "
+labels: ["type:feature", "status:triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        NETWATCH is strictly local-first and privacy-first. Features requiring cloud accounts, external telemetry, or transmitting network data off the machine will be rejected.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem Statement
+      description: Is your feature request related to a specific network monitoring problem or workflow?
+      placeholder: I need to quickly identify wake-on-lan capability...
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed Solution
+      description: Describe the solution you would like to see implemented.
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: privacy_check
+    attributes:
+      label: Privacy Invariant Confirmation
+      description: Please confirm the proposed feature complies with NETWATCH architectural tenets.
+      options:
+        - label: This feature operates entirely locally and makes zero external/cloud API requests.
+          required: true
+        - label: This feature avoids inventing synthetic data (no fake health scores or AI detection).
+          required: true

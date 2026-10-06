@@ -19,6 +19,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Built standalone native Windows binary `build/bin/netwatch.exe` with GUI subsystem flag (`-H windowsgui`) and required Wails build tags (`-tags desktop,production`), embedding the complete Vite React UI and local bundled fonts.
 - **Data Folder Integration**:
   - Wired `OpenDataFolder` handler to open `%LOCALAPPDATA%\NetWatch\data` via Windows Explorer in both Wails host and `netwatchd`.
+- **Open Source Governance & CI/CD Infrastructure (M2 baseline)**:
+  - Established dual licensing under MIT (`LICENSE-MIT`) and Apache 2.0 (`LICENSE-APACHE`).
+  - Formalized STRIDE threat model in `THREAT_MODEL.md` (unprivileged API isolation, anti-DNS rebinding, loopback security).
+  - Added structured incident response plan in `INCIDENT_RESPONSE.md`.
+  - Created public roadmap document `ROADMAP.md` tracking milestones M1 through M7.
+  - Implemented GitHub Actions CI workflow in `.github/workflows/ci.yml` with SHA-pinned actions, concurrency cancellation, and cross-platform matrix testing on Ubuntu (`-race`) and Windows.
+  - Added automated dependency management in `.github/dependabot.yml` covering `gomod`, `npm`, and `github-actions`.
+  - Added `.github/CODEOWNERS` mapping ownership to `@alwkala`, and `.github/FUNDING.yml` for sponsorships.
+  - Standardized repo hygiene with `.editorconfig`, `.gitattributes`, and `CONTRIBUTORS.md`.
+  - Created structured issue forms in `.github/ISSUE_TEMPLATE/` (`bug_report.yml`, `feature_request.yml`, `config.yml`) and `.github/pull_request_template.md`.
+  - Added `SECURITY.md` (vulnerability disclosure SLA & loopback privacy invariants) and `CONTRIBUTING.md` (local-first design rules).
+  - Adopted Contributor Covenant v2.1 in `CODE_OF_CONDUCT.md`.
+  - Redesigned `README.md` with visual architecture badges, download matrix, and collapsible diagnostics.
+  - Updated repository topics and description on GitHub via `gh` CLI to reflect cross-platform architecture.
 
 ### Fixed
 - **Windows ARP Table Desynchronization**:
