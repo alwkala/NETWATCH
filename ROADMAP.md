@@ -50,13 +50,14 @@ NETWATCH sweeps subnets in milliseconds, fingerprints hardware locally, and main
 - [x] Formal STRIDE Threat Model (`THREAT_MODEL.md`) and Incident Response Plan (`INCIDENT_RESPONSE.md`).
 - [x] Unit test suites for API security invariants (Bearer token, DNS-rebinding Host check, Origin isolation) and SQLite Store persistence/transactions.
 - [x] Cross-platform build fixes (`openfolder` separation and `frontend/dist/.gitkeep`) ensuring clean checkouts pass on Linux and Windows CI.
+- [x] GitHub Repository Rulesets: enforced branch protection on `main` (blocking branch deletion, non-fast-forward pushes, requiring linear history and green CI status checks) and tag immutability on `refs/tags/v*`.
 
 ---
 
 ### 🔄 Milestone 3: Real Settings & Database Management (In Progress)
 - [ ] **Settings Persistence & Engine Binding**:
   - [x] Persist user preferences in SQLite (`GET /v1/settings`, `PUT /v1/settings`) instead of transient frontend state.
-  - [ ] Scheduled background scan execution at configurable intervals (`1m`, `5m`, `15m`, `1h`, `manual`).
+  - [x] Scheduled background scan execution at configurable intervals (`1m`, `5m`, `15m`, `1h`, `manual`).
   - [ ] Native Windows toast notifications for new device discovery, device offline, and network change.
   - [ ] System Tray integration: minimize-to-tray and start-minimized on login via HKCU Run key.
 - [ ] **Database Inspection & Maintenance Panel**:

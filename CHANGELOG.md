@@ -5,9 +5,16 @@ All notable changes to the NETWATCH project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.1.0-dev] - 2026-10-06
-
+## [0.1.0-alpha.1] - 2026-10-06
+ 
 ### Added
+- **GitHub Repository Rulesets & Branch Governance**:
+  - Configured active ruleset on default branch `main` blocking branch deletions and force pushes (`non_fast_forward`).
+  - Enforced required CI status checks (`Go Engine Tests (ubuntu-latest)`, `Go Engine Tests (windows-latest)`, `Frontend Typecheck & Build`) under strict base-branch synchronization policy.
+  - Enforced linear history and conversation thread resolution before merging.
+  - Configured tag immutability ruleset protecting `refs/tags/v*` releases against deletion and modifications.
+- **Official GitHub Release Publication**:
+  - Published release `v0.1.0-alpha.1` with attached standalone portable executable `netwatch.exe` (19.9 MB).
 - **Windows Native Verification (M1)**:
   - Verified `GetAdaptersAddresses`, `GetIpNetTable`, and unprivileged `IcmpSendEcho` on real Windows LAN (`192.168.1.0/24`).
   - Successfully discovered network adapters, default gateway, DNS servers, and live devices.
