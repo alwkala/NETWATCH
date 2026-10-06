@@ -79,21 +79,21 @@ No feature or diagnostic tool enters NETWATCH unless it passes three architectur
 ---
 
 ### 🔄 Milestone 4: Enhanced Device Fingerprinting, Identity & Trust (In Progress)
-- [ ] **Randomized MAC Detection & Composite Identity**:
-  - [ ] IEEE 802 Locally Administered Address (LAA) bit detection (`mac[0] & 0x02 != 0`).
-  - [ ] Distinct UI badge for private/randomized Wi-Fi addresses (iOS, Android, Windows 10/11) with explanatory tooltip.
-  - [ ] Device Merge & Aliasing workflow (`POST /v1/devices/{targetId}/merge`) to unify fragmented device histories when private MACs rotate.
-- [ ] **Trust Status & Asset Allowlist**:
-  - [ ] Device trust classification: `Known` (approved asset), `Guest` (authorized temporary device), and `Unknown` (default for newly discovered assets).
-  - [ ] User-editable custom device aliases (with Arabic and UTF-8 support up to 80 characters), custom device types, and notes.
+- [x] **Randomized MAC Detection & Composite Identity**:
+  - [x] IEEE 802 Locally Administered Address (LAA) bit detection (`mac[0] & 0x02 != 0`).
+  - [x] Distinct UI badge for private/randomized Wi-Fi addresses (iOS, Android, Windows 10/11) with explanatory tooltip.
+  - [x] Device Merge & Aliasing workflow (`POST /v1/devices/{targetId}/merge`) to unify fragmented device histories when private MACs rotate.
+- [x] **Trust Status & Asset Allowlist**:
+  - [x] Device trust classification: `Known` (approved asset), `Guest` (authorized temporary device), and `Unknown` (default for newly discovered assets).
+  - [x] User-editable custom device aliases (with Arabic and UTF-8 support up to 80 characters), custom device types, and notes.
 - [ ] **Multi-Protocol Discovery (Unprivileged)**:
   - [ ] Passive/unprivileged multicast DNS (mDNS / Bonjour) `.local` PTR/SRV inspection.
   - [ ] NetBIOS Name Service (NBNS) query prober on UDP 137 for Windows hostnames.
   - [ ] SSDP / UPnP device description listener.
   - [ ] Wi-Fi SSID discovery via native OS WLAN API.
-- [ ] **Security & Untrusted Input Hardening**:
-  - [ ] Strict hostname sanitization pipeline: strip ANSI escapes, control characters, and Unicode Bidi override runes.
-  - [ ] Automated CI Zero-Egress gate: AST parser test verifying no external `net/http` client dialers exist in Go code and no remote CDN imports in frontend assets.
+- [x] **Security & Untrusted Input Hardening**:
+  - [x] Strict hostname sanitization pipeline: strip ANSI escapes, control characters, and Unicode Bidi override runes.
+  - [x] Automated CI Zero-Egress gate: AST parser test verifying no external `net/http` client dialers exist in Go code and no remote CDN imports in frontend assets.
 
 ---
 

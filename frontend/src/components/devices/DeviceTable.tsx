@@ -34,6 +34,7 @@ export const DeviceTable: React.FC<DeviceTableProps> = ({
   const deferredSearch = useDeferredValue(searchQuery);
   const [statusFilter, setStatusFilter] = useState<'all' | 'online' | 'offline' | 'new'>(initialFilter);
   const [typeFilter, setTypeFilter] = useState<string>('all');
+  const [trustFilter, setTrustFilter] = useState<string>('all');
   const [sortField, setSortField] = useState<SortField>('ip');
   const [sortAsc, setSortAsc] = useState<boolean>(true);
 
@@ -60,6 +61,11 @@ export const DeviceTable: React.FC<DeviceTableProps> = ({
     // Type filter
     if (typeFilter !== 'all') {
       result = result.filter(d => d.type === typeFilter);
+    }
+
+    // Trust filter
+    if (trustFilter !== 'all') {
+      result = result.filter(d => (d.trustStatus || 'unknown') === trustFilter);
     }
 
     // Search query (name, ip, mac, vendor, hostname)
@@ -192,6 +198,17 @@ export const DeviceTable: React.FC<DeviceTableProps> = ({
                   </option>
                 ))}
               </select>
+
+              <select
+                value={trustFilter}
+                onChange={e => setTrustFilter(e.target.value)}
+                className="bg-white dark:bg-neutral-800 text-xs text-neutral-900 dark:text-neutral-200 border border-neutral-300 dark:border-neutral-700 rounded px-2 py-1 focus:outline-hidden"
+              >
+                <option value="all">All Trust</option>
+                <option value="known">Known</option>
+                <option value="guest">Guest</option>
+                <option value="unknown">Unknown</option>
+              </select>
             </div>
           )}
         </div>
@@ -306,11 +323,28 @@ export const DeviceTable: React.FC<DeviceTableProps> = ({
 
                     {/* Device & Hostname */}
                     <td className="py-2.5 px-3">
-                      <div className="font-semibold text-neutral-900 dark:text-neutral-100 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
-                        {device.customAlias || device.name}
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="font-semibold text-neutral-900 dark:text-neutral-100 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
+                          {device.customAlias || device.name}
+                        </span>
+                        {device.trustStatus === 'known' && (
+                          <span className="text-[10px] px-1.5 py-0.2 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/80 rounded font-medium">
+                            Known
+                          </span>
+                        )}
+                        {device.trustStatus === 'guest' && (
+                          <span className="text-[10px] px-1.5 py-0.2 bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800/80 rounded font-medium">
+                            Guest
+                          </span>
+                        )}
+                        {device.isRandomizedMac && (
+                          <span className="text-[10px] px-1.5 py-0.2 bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-400 border border-purple-200 dark:border-purple-800/80 rounded font-mono" title="Locally Administered Address (iOS/Android/Windows Private Wi-Fi MAC)">
+                            Private MAC
+                          </span>
+                        )}
                       </div>
                       <div className="text-[11px] text-neutral-500 dark:text-neutral-400 font-mono truncate max-w-45">
-                        {device.hostname}
+                        {device.hostname || '—'}
                       </div>
                     </td>
 

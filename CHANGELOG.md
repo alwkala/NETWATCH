@@ -8,6 +8,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Randomized MAC Detection & Identity Unification (M4)**:
+  - Added IEEE 802 Locally Administered Address (LAA) bit detection (`mac[0] & 0x02 != 0`) and `isRandomizedMac` property in wire models and SQLite schema migration v2.
+  - Added "Private MAC" badge across Device Table and Device Details drawer with tooltip explaining private Wi-Fi addresses.
+  - Implemented Device Merge & Aliasing engine (`POST /v1/devices/{targetId}/merge`): unifies fragmented device records, transfers event history, registers MAC aliases in `device_mac_aliases`, and automatically reconciles future sweeps under the canonical identity.
+- **Trust Status & Asset Allowlist (M4)**:
+  - Added three-tier asset trust classification: `known` (Approved), `guest` (Temporary Visitor), and `unknown` (Unclassified).
+  - Added trust status filtering and quick toggle controls directly in the Device Table and Details drawer.
+  - Exposed `trustStatus` updates via `PATCH /v1/devices/{id}` with strict server-side validation.
+- **Untrusted LAN String Sanitization (M4)**:
+  - Added `SanitizeLANString` in `internal/fingerprint/sanitize.go`: strips control characters, ANSI escape codes, and Unicode Bidi overrides, clamping lengths to 64 runes.
+  - Added `EscapeCSVField` to mitigate CSV formula injection (CWE-1236) by escaping execution trigger characters (`=`, `+`, `-`, `@`, `\t`, `\r`).
+- **Automated Zero-Egress CI Gate (M4)**:
+  - Added `internal/netenv/egress_test.go`: AST analysis verifying that no package outside `internal/api` imports `net/http`, no outbound `http.Client` is instantiated, and frontend assets never link to remote CDN domains.
 - **Native Windows Toast Notifications (M3)**:
   - Implemented asynchronous, non-blocking WinRT desktop toast notifications using `ToastNotificationManager` via PowerShell 5.1 runtime in `internal/notifier/notifier_windows.go`.
   - Added clean cross-platform stubs in `internal/notifier/notifier_other.go` for Linux and macOS.

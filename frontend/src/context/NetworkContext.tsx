@@ -52,6 +52,7 @@ interface NetworkContextType {
   startScan: (type?: 'quick' | 'full') => Promise<ScanResult | null>;
   refresh: () => Promise<void>;
   updateDevice: (id: string, updates: Partial<Device>) => Promise<void>;
+  mergeDevices: (targetId: string, sourceId: string) => Promise<void>;
   pingDevice: (ip: string) => Promise<{ success: boolean; latencyMs: number }>;
   wakeOnLan: (mac: string) => Promise<{ success: boolean; message: string }>;
   scanDevicePorts: (id: string) => Promise<DeviceService[]>;
@@ -172,6 +173,23 @@ export const NetworkProvider: React.FC<{
       }
     },
     [service]
+  );
+
+  const mergeDevices = useCallback(
+    async (targetId: string, sourceId: string) => {
+      try {
+        if (service.mergeDevices) {
+          await service.mergeDevices(targetId, sourceId);
+          await loadData();
+          setSelectedDeviceId(targetId);
+        }
+      } catch (err: unknown) {
+        console.error('Failed to merge devices', err);
+        const message = err instanceof Error ? err.message : 'Failed to merge devices';
+        setError(message);
+      }
+    },
+    [service, loadData]
   );
 
   const pingDevice = useCallback(
@@ -338,6 +356,7 @@ export const NetworkProvider: React.FC<{
         startScan,
         refresh,
         updateDevice,
+        mergeDevices,
         pingDevice,
         wakeOnLan,
         scanDevicePorts,

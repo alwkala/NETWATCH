@@ -252,6 +252,21 @@ export class MockNetworkService implements NetworkService {
     return newDev;
   }
 
+  public async mergeDevices(targetId: string, sourceId: string): Promise<void> {
+    const src = this.devices.find(d => d.id === sourceId);
+    if (!src) return;
+    this.devices = this.devices.filter(d => d.id !== sourceId);
+    this.events.unshift({
+      id: `evt-${Date.now()}`,
+      timestamp: new Date().toISOString(),
+      type: 'device_merged',
+      title: 'Device identity merged',
+      deviceName: src.name,
+      deviceId: targetId,
+      details: `Merged ${src.name} (${src.mac}) into canonical device`
+    });
+  }
+
   private settings: AppSettings = {
     autoDiscovery: true,
     scanInterval: '5m',
