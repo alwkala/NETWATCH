@@ -42,26 +42,34 @@ const MainContent: React.FC = () => {
   );
 };
 
+const AppShell: React.FC = () => {
+  const { service } = useNetwork();
+
+  return (
+    <div className="flex flex-col h-screen w-screen overflow-hidden bg-neutral-100 dark:bg-neutral-950 font-sans text-neutral-900 dark:text-neutral-100">
+      {/* Windows 10/11 Title Bar with Controls & Prototype State Switcher (Browser simulation only) */}
+      {service.isSimulated && <TitleBar />}
+
+      {/* Application Main Layout */}
+      <div className="flex flex-1 overflow-hidden">
+        {/* Desktop Navigation Sidebar */}
+        <Sidebar />
+
+        {/* Content Column: TopBar + Page Body */}
+        <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+          <TopBar />
+          <MainContent />
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export default function App({ service, startupError }: { service?: NetworkService; startupError?: string }) {
   return (
     <ThemeProvider>
       <NetworkProvider service={service} startupError={startupError}>
-        <div className="flex flex-col h-screen w-screen overflow-hidden bg-neutral-100 dark:bg-neutral-950 font-sans text-neutral-900 dark:text-neutral-100">
-          {/* Windows 10/11 Title Bar with Controls & Prototype State Switcher */}
-          <TitleBar />
-
-          {/* Application Main Layout */}
-          <div className="flex flex-1 overflow-hidden">
-            {/* Desktop Navigation Sidebar */}
-            <Sidebar />
-
-            {/* Content Column: TopBar + Page Body */}
-            <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-              <TopBar />
-              <MainContent />
-            </div>
-          </div>
-        </div>
+        <AppShell />
       </NetworkProvider>
     </ThemeProvider>
   );

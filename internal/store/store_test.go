@@ -1,0 +1,245 @@
+package store_test
+
+import (
+	"context"
+	"path/filepath"
+	"testing"
+	"time"
+
+	"netwatch/internal/model"
+	"netwatch/internal/store"
+)
+
+func TestStore_OpenAndMigrate(t *testing.T) {
+	ctx := context.Background()
+	// Test memory mode
+	sMem, err := store.Open(":memory:")
+	if err != nil {
+		t.Fatalf("Open(:memory:) failed: %v", err)
+	}
+	defer sMem.Close()
+
+	// Test file mode in temporary directory
+	dbPath := filepath.Join(t.TempDir(), "test.db")
+	sFile, err := store.Open(dbPath)
+	if err != nil {
+		t.Fatalf("Open(%q) failed: %v", dbPath, err)
+	}
+	defer sFile.Close()
+
+	ok, err := sFile.IntegrityCheck(ctx)
+	if err != nil || ok != "ok" {
+		t.Fatalf("IntegrityCheck: got (%v, %v), want 'ok', nil", ok, err)
+	}
+}
+
+func TestStore_DevicesAndReconciliation(t *testing.T) {
+	ctx := context.Background()
+	st, err := store.Open(":memory:")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer st.Close()
+
+	now := time.Now().UTC().Truncate(time.Millisecond)
+	netKey := "192.168.1.0/24:00:11:22:33:44:55"
+
+	// 1. Commit initial device
+	dev1 := store.Known{
+		Device: model.Device{
+			ID:        "dev-1",
+			MAC:       "00:11:22:33:44:55",
+			IP:        "192.168.1.50",
+			Hostname:  "test-pc",
+			Vendor:    "Intel",
+			Type:      "Computer",
+			Status:    model.StatusOnline,
+			FirstSeen: now,
+			LastSeen:  now,
+			IsNew:     true,
+		},
+		Net:    netKey,
+		Missed: 0,
+	}
+
+	ws := store.Writeset{
+		Devices: []store.Known{dev1},
+		Events: []model.NetworkEvent{
+			{
+				ID:         "ev-1",
+				Timestamp:  now,
+				Type:       model.EvNewDevice,
+				Title:      "New Device Detected",
+				DeviceID:   "dev-1",
+				DeviceName: "test-pc",
+				IP:         "192.168.1.50",
+				MAC:        "00:11:22:33:44:55",
+			},
+		},
+		History: []store.HistoryRow{
+			{
+				DeviceID: "dev-1",
+				Time:     now,
+				Type:     model.HistDiscovered,
+				Desc:     "Discovered on network",
+			},
+		},
+		Services: map[string][]model.DeviceService{
+			"dev-1": {
+				{Port: 80, Protocol: "TCP", Service: "HTTP", Status: "Open"},
+			},
+		},
+	}
+
+	if err := st.Commit(ctx, ws); err != nil {
+		t.Fatalf("Commit failed: %v", err)
+	}
+
+	// 2. Query known devices
+	known, err := st.ListKnown(ctx, netKey)
+	if err != nil {
+		t.Fatalf("ListKnown failed: %v", err)
+	}
+	if len(known) != 1 || known[0].ID != "dev-1" {
+		t.Fatalf("unexpected known devices: %+v", known)
+	}
+	if len(known[0].Services) != 1 || known[0].Services[0].Port != 80 {
+		t.Fatalf("services not preserved: %+v", known[0].Services)
+	}
+
+	// 3. Patch device
+	customAlias := "My Workstation"
+	patch := model.DevicePatch{
+		CustomAlias: &customAlias,
+		IsNew:       func(b bool) *bool { return &b }(false),
+	}
+	if err := st.UpdateDevice(ctx, "dev-1", patch); err != nil {
+		t.Fatalf("UpdateDevice failed: %v", err)
+	}
+
+	// 4. Retrieve single device
+	d, err := st.GetDevice(ctx, "dev-1")
+	if err != nil {
+		t.Fatalf("GetDevice failed: %v", err)
+	}
+	if d.CustomAlias != customAlias || d.IsNew {
+		t.Fatalf("expected custom alias %q and IsNew=false, got %+v", customAlias, d)
+	}
+
+	// 5. Check history and events
+	history, err := st.DeviceHistory(ctx, "dev-1", 10)
+	if err != nil {
+		t.Fatalf("DeviceHistory failed: %v", err)
+	}
+	if len(history) != 1 || history[0].Type != model.HistDiscovered {
+		t.Fatalf("unexpected device history: %+v", history)
+	}
+
+	events, err := st.Events(ctx, 10)
+	if err != nil {
+		t.Fatalf("Events failed: %v", err)
+	}
+	if len(events) != 1 || events[0].Type != model.EvNewDevice {
+		t.Fatalf("unexpected events: %+v", events)
+	}
+}
+
+func TestStore_Settings(t *testing.T) {
+	ctx := context.Background()
+	st, err := store.Open(":memory:")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer st.Close()
+
+	// Default settings when unset
+	defs, err := st.GetSettings(ctx)
+	if err != nil {
+		t.Fatalf("GetSettings (defaults) failed: %v", err)
+	}
+	if defs.ScanInterval != "5m" || !defs.NotifyNewDevice {
+		t.Fatalf("unexpected default settings: %+v", defs)
+	}
+
+	// Save custom settings
+	custom := defs
+	custom.ScanInterval = "15m"
+	custom.NotifyNewDevice = false
+	custom.StartMinimized = true
+
+	if err := st.SaveSettings(ctx, custom); err != nil {
+		t.Fatalf("SaveSettings failed: %v", err)
+	}
+
+	saved, err := st.GetSettings(ctx)
+	if err != nil {
+		t.Fatalf("GetSettings failed: %v", err)
+	}
+	if saved.ScanInterval != "15m" || saved.NotifyNewDevice != false || !saved.StartMinimized {
+		t.Fatalf("saved settings mismatch: %+v", saved)
+	}
+}
+
+func TestStore_StatsVacuumIntegrity(t *testing.T) {
+	ctx := context.Background()
+	dbPath := filepath.Join(t.TempDir(), "metrics.db")
+	st, err := store.Open(dbPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer st.Close()
+
+	stats, err := st.Stats(ctx, dbPath)
+	if err != nil {
+		t.Fatalf("Stats failed: %v", err)
+	}
+	if stats.DeviceCount != 0 || stats.FileSizeBytes == 0 {
+		t.Fatalf("unexpected stats: %+v", stats)
+	}
+
+	// Check Vacuum
+	if err := st.Vacuum(ctx); err != nil {
+		t.Fatalf("Vacuum failed: %v", err)
+	}
+
+	// Check Integrity
+	status, err := st.IntegrityCheck(ctx)
+	if err != nil || status != "ok" {
+		t.Fatalf("IntegrityCheck failed: status=%s, err=%v", status, err)
+	}
+}
+
+func TestStore_ClearHistory(t *testing.T) {
+	ctx := context.Background()
+	st, err := store.Open(":memory:")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer st.Close()
+
+	now := time.Now().UTC()
+	ws := store.Writeset{
+		Devices: []store.Known{
+			{Device: model.Device{ID: "d1", MAC: "00:00:00:00:00:01", IP: "10.0.0.1", FirstSeen: now, LastSeen: now}},
+		},
+		Events: []model.NetworkEvent{
+			{ID: "e1", Timestamp: now, Type: model.EvNewDevice, Title: "test"},
+		},
+	}
+	if err := st.Commit(ctx, ws); err != nil {
+		t.Fatal(err)
+	}
+
+	// Clear
+	if err := st.ClearHistory(ctx); err != nil {
+		t.Fatalf("ClearHistory failed: %v", err)
+	}
+
+	stats, err := st.Stats(ctx, ":memory:")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if stats.DeviceCount != 0 || stats.EventCount != 0 {
+		t.Fatalf("tables not emptied: %+v", stats)
+	}
+}

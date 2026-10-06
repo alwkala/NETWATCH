@@ -21,7 +21,7 @@
 <br>
 
 > ## Know Every Device on Your LAN. Without the Cloud Watching.
-> **NETWATCH sweeps your subnet in milliseconds, fingerprints hardware locally, and maintains an unshakeable device inventory. 100% offline, zero telemetry, no account required.**
+> **NETWATCH provides active LAN discovery, fingerprints hardware locally, and maintains an unshakeable device inventory. 100% offline, zero telemetry, no account required.**
 >
 > *Instant LAN discovery and persistent device tracking — 100% offline, zero cloud, zero telemetry.*
 
@@ -35,10 +35,10 @@
 |:---|:---:|:---:|:---:|:---:|
 | **Local-First (No Account / No Cloud)** | ✅ **100% Offline** | ❌ Requires Cloud Account | ⚠️ Local but closed-source | ✅ 100% Offline |
 | **Persistent Device Inventory & Timeline** | ✅ **Yes (SQLite)** | ✅ Yes (Cloud sync) | ❌ Transient list only | ❌ Session traffic only |
-| **Subnet Sweep Speed** | ⚡ **Milliseconds** | ⚠️ Moderate | ⚡ Fast | N/A (Traffic capture) |
+| **Subnet Sweep Architecture** | ⚡ **Concurrent ARP/ICMP/TCP** | ⚠️ Moderate | ⚡ Fast | N/A (Passive capture) |
 | **Flap-Resistant Reconciliation** | ✅ **Yes (`misses=2`)** | ⚠️ Partial | ❌ No | N/A |
-| **Modern Desktop UI** | ✅ **React 19 + Wails** | ⚠️ Electron / Paywalled | ❌ 2010 Win32 Legacy UI | ✅ Modern Iced GUI |
-| **Unprivileged Execution (No Root/Admin)** | ✅ **Yes (`iphlpapi.dll`)** | ⚠️ Requires Npcap/Admin | ⚠️ Requires UAC / Npcap | ⚠️ Requires WinPcap/Npcap |
+| **Modern Desktop UI** | ✅ **React 19 + Wails** | ⚠️ Electron / Paywalled | ❌ Legacy Win32 UI | ✅ Modern Iced GUI |
+| **Unprivileged Execution (No Driver/Npcap)** | ✅ **Yes (`iphlpapi.dll`)** | ⚠️ Requires Npcap/Admin | ⚠️ Requires UAC / Npcap | ⚠️ Requires WinPcap/Npcap |
 | **Open Source & Dual Licensed** | ✅ **MIT / Apache 2.0** | ❌ Proprietary | ❌ Proprietary | ✅ MIT / Apache 2.0 |
 
 ---
@@ -52,7 +52,7 @@ React 19 UI  ──HTTP + SSE──▶  Go Core Engine (127.0.0.1:random, Bearer
 
 - **`internal/netenv`**: Operating system network access abstracted behind an `Env` interface:
   - **Windows**: Unprivileged native `iphlpapi.dll` (`IcmpSendEcho`, `GetIpNetTable`, `SendARP`, `GetAdaptersAddresses`).
-  - **Linux**: Netlink and `/proc/net/arp` socket implementation for development and daemon mode.
+  - **Linux**: `/proc/net/arp` and socket implementation for development and daemon mode.
   - **Portable**: RFC-compliant Wake-on-LAN (WoL), TCP port probing, reverse DNS.
 - **`internal/engine`**: Active discovery engine with concurrent subnet sweeps, reconciliation diff, and offline detection (`OfflineAfterMisses = 2` consecutive missed scans to prevent sleep-mode flapping).
 - **`internal/store`**: Embedded SQLite database persisting device inventory, state changes, and historical event logs.
@@ -63,7 +63,7 @@ React 19 UI  ──HTTP + SSE──▶  Go Core Engine (127.0.0.1:random, Bearer
 
 ## Key Features
 
-- ⚡ **Super Fast Subnet Discovery**: Active, unprivileged ARP and ICMP sweeps across private IPv4 LANs in milliseconds.
+- ⚡ **Super Fast Subnet Discovery**: Active, unprivileged ARP and ICMP sweeps across private IPv4 LANs with TCP fallback.
 - 🏷️ **Local Hardware Fingerprinting**: Local MAC OUI lookup via embedded IEEE database (zero external network requests).
 - ⏱️ **Flap-Resistant Status Tracking**: Smart reconciliation marks devices offline only after two consecutive missed sweeps.
 - 🔌 **Integrated Network Diagnostics**: Unprivileged Ping with latency measurement, TCP port probing, and Wake-on-LAN (WoL) transmission.
@@ -76,7 +76,7 @@ React 19 UI  ──HTTP + SSE──▶  Go Core Engine (127.0.0.1:random, Bearer
 
 | Operating System | Architecture | Package Format | Status |
 |:---|:---|:---|:---|
-| **Windows 10 / 11** | `x64` | Portable `.exe` / Installer | **Validated & Active** ([Build Instructions](#build-the-desktop-app-windows)) |
+| **Windows 10 / 11** | `x64` | Standalone `.exe` (Installer in M7) | **Validated & Active** ([Build Instructions](#build-the-desktop-app-windows)) |
 | **Linux** | `amd64`, `arm64` | Daemon / CLI (`netwatchd`) | **Development / Headless** |
 | **macOS** | `Apple Silicon`, `Intel` | Wails `.app` / `.dmg` | **Roadmap (M7)** |
 
@@ -108,9 +108,20 @@ npm run dev
 # Open the printed URL with ?api=<baseUrl>&token=<token>
 ```
 
+> **Security Note**: Passing `-token` on the command line to `netwatchd` makes it visible in the operating system's process table (`ps` / Task Manager). This is intended for local development only.
+
 ### Build the Desktop App (Windows)
 
+Ensure the frontend is compiled into `frontend/dist` before building the standalone Windows binary:
+
 ```bash
+# 1. Build the production web bundle
+cd frontend
+npm ci
+npm run build
+cd ..
+
+# 2. Build the standalone executable
 go build -tags desktop,production -ldflags "-w -s -H windowsgui" -o build/bin/netwatch.exe .
 ```
 

@@ -139,7 +139,7 @@ func (e *Engine) doScan(ctx context.Context, st *scanState) (model.ScanResult, e
 	}
 	st.update(func(s *ScanSnapshot) { s.Total = total })
 
-	pingTimeout := 500 * time.Millisecond
+	pingTimeout := 200 * time.Millisecond
 	if kind == "full" {
 		pingTimeout = 900 * time.Millisecond
 	}
@@ -218,30 +218,36 @@ func (e *Engine) doScan(ctx context.Context, st *scanState) (model.ScanResult, e
 	var tmu sync.Mutex
 	if len(tcpTargets) > 0 {
 		// Limit TCP discovery to a reasonable subset to keep scans fast.
-		// On quick scans: probe only the gateway (if missed) + first 64 unresponding hosts.
-		// On full scans: probe all.
+		// On quick scans: probe only the gateway (if missed) + first 24 unresponding hosts on key ports.
+		// On full scans: probe all with all discovery ports.
 		maxTCP := len(tcpTargets)
-		if kind == "quick" && maxTCP > 64 {
-			// Always include gateway if it was missed.
-			limited := make([]netip.Addr, 0, 65)
-			for _, ip := range tcpTargets {
-				if ip == ad.Gateway {
-					limited = append(limited, ip)
+		tcpPorts := netenv.DiscoveryPorts
+		tcpTimeout := 400 * time.Millisecond
+		if kind == "quick" {
+			tcpPorts = []int{80, 445}
+			tcpTimeout = 150 * time.Millisecond
+			if maxTCP > 24 {
+				// Always include gateway if it was missed.
+				limited := make([]netip.Addr, 0, 25)
+				for _, ip := range tcpTargets {
+					if ip == ad.Gateway {
+						limited = append(limited, ip)
+					}
 				}
-			}
-			for _, ip := range tcpTargets {
-				if ip != ad.Gateway && len(limited) < 64 {
-					limited = append(limited, ip)
+				for _, ip := range tcpTargets {
+					if ip != ad.Gateway && len(limited) < 24 {
+						limited = append(limited, ip)
+					}
 				}
+				tcpTargets = limited
 			}
-			tcpTargets = limited
 		}
 		forEach(ctx, tcpTargets, 48, func(ip netip.Addr) {
-			for _, port := range netenv.DiscoveryPorts {
+			for _, port := range tcpPorts {
 				if ctx.Err() != nil {
 					return
 				}
-				if e.env.TCPOpen(ctx, ip, port, 400*time.Millisecond) {
+				if e.env.TCPOpen(ctx, ip, port, tcpTimeout) {
 					tmu.Lock()
 					tcpFound[ip] = true
 					tmu.Unlock()
@@ -299,11 +305,15 @@ func (e *Engine) doScan(ctx context.Context, st *scanState) (model.ScanResult, e
 	selfHost, _ := os.Hostname()
 	var enriched atomic.Int64
 	nObs := len(obs)
+	rLookupTimeout := time.Second
+	if kind == "quick" {
+		rLookupTimeout = 200 * time.Millisecond
+	}
 	forEach(ctx, obs, 24, func(o *observation) {
 		if o.IsSelf {
 			o.Hostname = selfHost
 		} else {
-			o.Hostname = e.env.ReverseLookup(ctx, o.IP, time.Second)
+			o.Hostname = e.env.ReverseLookup(ctx, o.IP, rLookupTimeout)
 		}
 		if kind == "full" {
 			o.Ports, o.PortScanned = e.probePorts(ctx, o.IP), true

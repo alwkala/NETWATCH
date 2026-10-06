@@ -70,7 +70,7 @@ export const Scanner: React.FC = () => {
       </div>
 
       {/* Scan Options (Section 20) */}
-      <div className="bg-white dark:bg-neutral-850 border border-neutral-200 dark:border-neutral-800 rounded-lg p-5 space-y-3 shadow-xs">
+      <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg p-5 space-y-3 shadow-xs transition-colors">
         <div className="text-xs font-bold text-neutral-900 dark:text-neutral-100">
           Discovery Mode
         </div>
@@ -81,7 +81,7 @@ export const Scanner: React.FC = () => {
             className={`p-3.5 rounded-md border text-xs cursor-pointer flex items-start gap-3 transition-colors ${
               scanType === 'quick'
                 ? 'bg-neutral-100/90 dark:bg-neutral-800 border-neutral-400 dark:border-neutral-600 ring-1 ring-neutral-400 dark:ring-neutral-600'
-                : 'bg-white dark:bg-neutral-850 border-neutral-200 dark:border-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-800/40'
+                : 'bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-800/40'
             }`}
           >
             <input
@@ -106,7 +106,7 @@ export const Scanner: React.FC = () => {
             className={`p-3.5 rounded-md border text-xs cursor-pointer flex items-start gap-3 transition-colors ${
               scanType === 'full'
                 ? 'bg-neutral-100/90 dark:bg-neutral-800 border-neutral-400 dark:border-neutral-600 ring-1 ring-neutral-400 dark:ring-neutral-600'
-                : 'bg-white dark:bg-neutral-850 border-neutral-200 dark:border-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-800/40'
+                : 'bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-800/40'
             }`}
           >
             <input
@@ -131,7 +131,7 @@ export const Scanner: React.FC = () => {
       {/* Scanner State Display */}
       {isScanning ? (
         /* During Scan State (Section 19) */
-        <div className="bg-white dark:bg-neutral-850 border border-neutral-300 dark:border-neutral-700 rounded-lg p-6 space-y-4 shadow-xs">
+        <div className="bg-white dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-700 rounded-lg p-6 space-y-4 shadow-xs transition-colors">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5">
               <RotateCw className="w-5 h-5 text-emerald-500 animate-spin" />
@@ -180,7 +180,7 @@ export const Scanner: React.FC = () => {
         </div>
       ) : lastScanResult ? (
         /* Scan Completed State (Section 19) */
-        <div className="bg-white dark:bg-neutral-850 border border-neutral-200 dark:border-neutral-800 rounded-lg p-6 space-y-5 shadow-xs">
+        <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg p-6 space-y-5 shadow-xs transition-colors">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-full bg-emerald-100 dark:bg-emerald-950 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
               <CheckCircle2 className="w-5 h-5" />
@@ -239,15 +239,16 @@ export const Scanner: React.FC = () => {
             </button>
             <button
               onClick={handleStartScan}
-              className="px-4 py-2 bg-neutral-100 dark:bg-neutral-800 text-neutral-800 dark:text-neutral-200 text-xs font-medium rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors border border-neutral-300 dark:border-neutral-700"
+              className="px-4 py-2 bg-neutral-100 dark:bg-neutral-800 text-neutral-800 dark:text-neutral-200 text-xs font-medium rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors border border-neutral-300 dark:border-neutral-700 inline-flex items-center gap-1.5"
             >
-              Scan Again
+              <RotateCw className="w-3.5 h-3.5 text-neutral-500" />
+              <span>Rescan</span>
             </button>
           </div>
         </div>
       ) : (
         /* Ready to Scan State (Section 19) */
-        <div className="bg-white dark:bg-neutral-850 border border-neutral-200 dark:border-neutral-800 rounded-lg p-8 text-center space-y-3 shadow-xs">
+        <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg p-8 text-center space-y-3 shadow-xs transition-colors">
           <div className="w-12 h-12 rounded-full bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center text-neutral-500 mx-auto">
             <Radio className="w-6 h-6" />
           </div>

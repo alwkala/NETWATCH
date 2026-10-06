@@ -1,6 +1,7 @@
 import { Device, DeviceEvent, DeviceService } from '../types/device';
 import { NetworkInfo, ScanResult } from '../types/network';
 import { NetworkEvent } from '../types/events';
+import { AppSettings, DatabaseStats, MaintenanceResult } from '../types/settings';
 import { initialMockDevices } from '../data/mock/devicesData';
 import { initialMockNetworkInfo } from '../data/mock/networkData';
 import { initialMockEvents } from '../data/mock/eventsData';
@@ -249,6 +250,60 @@ export class MockNetworkService implements NetworkService {
     };
     this.events.unshift(event);
     return newDev;
+  }
+
+  private settings: AppSettings = {
+    autoDiscovery: true,
+    scanInterval: '5m',
+    notifyNewDevice: true,
+    notifyDeviceOffline: false,
+    notifyNetworkChange: true,
+    launchAtStartup: false,
+    startMinimized: false
+  };
+
+  public async getSettings(): Promise<AppSettings> {
+    const saved = localStorage.getItem('netwatch.settings');
+    if (saved) {
+      try { return JSON.parse(saved); } catch {}
+    }
+    return { ...this.settings };
+  }
+
+  public async updateSettings(updates: Partial<AppSettings>): Promise<AppSettings> {
+    this.settings = { ...this.settings, ...updates };
+    localStorage.setItem('netwatch.settings', JSON.stringify(this.settings));
+    return { ...this.settings };
+  }
+
+  public async getDatabaseStats(): Promise<DatabaseStats> {
+    return {
+      dbPath: 'C:\\Users\\User\\AppData\\Local\\NetWatch\\data\\network.db',
+      fileSizeBytes: 61440,
+      deviceCount: this.devices.length,
+      eventCount: this.events.length,
+      scanCount: 1,
+      walEnabled: true
+    };
+  }
+
+  public async vacuumDatabase(): Promise<MaintenanceResult> {
+    await this.delay(300);
+    return { success: true, message: 'Database defragmented and compacted successfully.' };
+  }
+
+  public async integrityCheck(): Promise<MaintenanceResult> {
+    await this.delay(200);
+    return { success: true, message: 'Integrity check result: ok' };
+  }
+
+  public async clearHistory(): Promise<void> {
+    this.devices = [];
+    this.events = [];
+  }
+
+  public async openDataFolder(): Promise<void> {
+    // Simulated web environment
   }
 
   public async resetToDefault(): Promise<void> {

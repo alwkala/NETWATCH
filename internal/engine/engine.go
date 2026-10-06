@@ -290,6 +290,33 @@ func (e *Engine) ClearHistory(ctx context.Context) error {
 	return e.st.ClearHistory(ctx)
 }
 
+// Settings returns the current user settings.
+func (e *Engine) Settings(ctx context.Context) (model.Settings, error) {
+	return e.st.GetSettings(ctx)
+}
+
+// UpdateSettings updates the persistent user settings.
+func (e *Engine) UpdateSettings(ctx context.Context, st model.Settings) error {
+	return e.st.SaveSettings(ctx, st)
+}
+
+// DatabaseStats returns file size, records count, and WAL status.
+func (e *Engine) DatabaseStats(ctx context.Context, dbPath string) (model.DatabaseStats, error) {
+	return e.st.Stats(ctx, dbPath)
+}
+
+// Vacuum defragments and compacts the SQLite database file.
+func (e *Engine) Vacuum(ctx context.Context) error {
+	e.commitMu.Lock()
+	defer e.commitMu.Unlock()
+	return e.st.Vacuum(ctx)
+}
+
+// IntegrityCheck runs a PRAGMA integrity_check on the database.
+func (e *Engine) IntegrityCheck(ctx context.Context) (string, error) {
+	return e.st.IntegrityCheck(ctx)
+}
+
 // checkNetworkChange records a network_change event when the machine is on a
 // different network than the last time NETWATCH looked.
 func (e *Engine) checkNetworkChange(ctx context.Context) error {

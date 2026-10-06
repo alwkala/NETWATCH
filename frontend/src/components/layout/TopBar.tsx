@@ -1,11 +1,13 @@
 import React from 'react';
 import { useNetwork, AppPage } from '../../context/NetworkContext';
+import { useTheme } from '../../context/ThemeContext';
 import {
   RotateCw,
-  Search,
+  Radar,
   Wifi,
   ChevronRight,
-  Sparkles
+  Sun,
+  Moon
 } from 'lucide-react';
 
 export const TopBar: React.FC = () => {
@@ -19,6 +21,7 @@ export const TopBar: React.FC = () => {
     refresh,
     navigateTo
   } = useNetwork();
+  const { theme, toggleTheme } = useTheme();
 
   const getPageTitle = () => {
     switch (activePage) {
@@ -42,7 +45,7 @@ export const TopBar: React.FC = () => {
   };
 
   return (
-    <div className="h-13 shrink-0 bg-white dark:bg-neutral-850 border-b border-neutral-200 dark:border-neutral-800 px-6 flex items-center justify-between">
+    <div className="h-13 shrink-0 bg-white dark:bg-neutral-900 border-b border-neutral-200 dark:border-neutral-800 px-6 flex items-center justify-between transition-colors">
       {/* Left: Breadcrumb / Title */}
       <div className="flex items-center gap-2">
         <h1 className="text-base font-bold text-neutral-900 dark:text-neutral-100 tracking-tight">
@@ -68,7 +71,7 @@ export const TopBar: React.FC = () => {
       {/* Right: Current network indicator & primary action */}
       <div className="flex items-center gap-3">
         {/* Network & Subnet indicator */}
-        <div className="hidden md:flex items-center gap-2 text-xs text-neutral-600 dark:text-neutral-400 px-3 py-1.5 rounded bg-neutral-100 dark:bg-neutral-800/80 border border-neutral-200 dark:border-neutral-750 font-mono">
+        <div className="hidden md:flex items-center gap-2 text-xs text-neutral-600 dark:text-neutral-400 px-3 py-1.5 rounded bg-neutral-100 dark:bg-neutral-800/80 border border-neutral-200 dark:border-neutral-700 font-mono">
           <Wifi className="w-3.5 h-3.5 text-neutral-500" />
           <span className="font-sans font-medium text-neutral-800 dark:text-neutral-200">
             {networkInfo?.ssid || networkInfo?.interfaceName || 'No network'}
@@ -93,29 +96,43 @@ export const TopBar: React.FC = () => {
           <RotateCw className="w-4 h-4" />
         </button>
 
-        {/* Primary Scan Action */}
+        {/* Theme Toggle Button */}
         <button
-          onClick={() => {
-            if (activePage !== 'scanner') {
-              navigateTo('scanner');
-            }
-            startScan('quick');
-          }}
-          disabled={isScanning}
-          className="px-3.5 py-1.5 bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-950 hover:bg-neutral-800 dark:hover:bg-white text-xs font-semibold rounded transition-colors shadow-xs flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+          onClick={toggleTheme}
+          className="p-1.5 text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded border border-neutral-200 dark:border-neutral-700 transition-colors"
+          title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} mode`}
+          aria-label="Toggle color theme"
         >
-          {isScanning ? (
-            <>
-              <RotateCw className="w-3.5 h-3.5 animate-spin" />
-              <span>Scanning... {scanProgress.progress}%</span>
-            </>
+          {theme === 'dark' ? (
+            <Sun className="w-4 h-4 text-amber-400" />
           ) : (
-            <>
-              <Search className="w-3.5 h-3.5" />
-              <span>Scan Network</span>
-            </>
+            <Moon className="w-4 h-4 text-neutral-600" />
           )}
         </button>
+
+        {/* Global Scan Action (Hidden when already on dedicated Scanner page) */}
+        {activePage !== 'scanner' && (
+          <button
+            onClick={() => {
+              navigateTo('scanner');
+              startScan('quick');
+            }}
+            disabled={isScanning}
+            className="px-3.5 py-1.5 bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-950 hover:bg-neutral-800 dark:hover:bg-white text-xs font-semibold rounded transition-colors shadow-xs flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            {isScanning ? (
+              <>
+                <RotateCw className="w-3.5 h-3.5 animate-spin" />
+                <span>Scanning... {scanProgress.progress}%</span>
+              </>
+            ) : (
+              <>
+                <Radar className="w-3.5 h-3.5 text-emerald-500 dark:text-emerald-600" />
+                <span>Scan Network</span>
+              </>
+            )}
+          </button>
+        )}
       </div>
     </div>
   );

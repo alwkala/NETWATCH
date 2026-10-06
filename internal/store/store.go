@@ -6,11 +6,13 @@ package store
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	_ "github.com/ncruces/go-sqlite3/driver"
@@ -441,3 +443,65 @@ func (s *Store) ClearHistory(ctx context.Context) error {
 	}
 	return tx.Commit()
 }
+
+const settingsMetaKey = "app_settings"
+
+// GetSettings retrieves persistent user settings or returns default settings if unset.
+func (s *Store) GetSettings(ctx context.Context) (model.Settings, error) {
+	val, err := s.Meta(ctx, settingsMetaKey)
+	if err != nil {
+		return model.DefaultSettings(), err
+	}
+	if val == "" {
+		return model.DefaultSettings(), nil
+	}
+	st := model.DefaultSettings()
+	if err := json.Unmarshal([]byte(val), &st); err != nil {
+		return model.DefaultSettings(), nil
+	}
+	return st, nil
+}
+
+// SaveSettings persists user settings as JSON in the meta table.
+func (s *Store) SaveSettings(ctx context.Context, st model.Settings) error {
+	b, err := json.Marshal(st)
+	if err != nil {
+		return err
+	}
+	return s.SetMeta(ctx, settingsMetaKey, string(b))
+}
+
+// Stats returns database metrics, record counts, and WAL journal status.
+func (s *Store) Stats(ctx context.Context, dbPath string) (model.DatabaseStats, error) {
+	res := model.DatabaseStats{DBPath: dbPath}
+	if dbPath != "" && dbPath != ":memory:" {
+		if fi, err := os.Stat(dbPath); err == nil {
+			res.FileSizeBytes = fi.Size()
+		}
+	}
+	_ = s.db.QueryRowContext(ctx, `SELECT count(*) FROM devices`).Scan(&res.DeviceCount)
+	_ = s.db.QueryRowContext(ctx, `SELECT count(*) FROM events`).Scan(&res.EventCount)
+	_ = s.db.QueryRowContext(ctx, `SELECT count(*) FROM scans`).Scan(&res.ScanCount)
+	var jMode string
+	if err := s.db.QueryRowContext(ctx, `PRAGMA journal_mode`).Scan(&jMode); err == nil {
+		res.WALEnabled = strings.EqualFold(jMode, "wal")
+	}
+	return res, nil
+}
+
+// Vacuum defragments and compacts the SQLite database file.
+func (s *Store) Vacuum(ctx context.Context) error {
+	_, err := s.db.ExecContext(ctx, `VACUUM`)
+	return err
+}
+
+// IntegrityCheck verifies the structural consistency of the SQLite database.
+func (s *Store) IntegrityCheck(ctx context.Context) (string, error) {
+	var res string
+	err := s.db.QueryRowContext(ctx, `PRAGMA integrity_check`).Scan(&res)
+	if err != nil {
+		return "", err
+	}
+	return res, nil
+}
+

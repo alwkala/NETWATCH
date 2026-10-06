@@ -34,6 +34,7 @@ type Config struct {
 	Token          string
 	AllowedOrigins []string // exact matches; DefaultOrigins are always included
 	Version        string
+	DBPath         string
 	Logger         *slog.Logger
 }
 
@@ -100,6 +101,11 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /v1/scans/{id}/stream", s.scanStream)
 	mux.HandleFunc("POST /v1/ping", s.ping)
 	mux.HandleFunc("POST /v1/wol", s.wol)
+	mux.HandleFunc("GET /v1/settings", s.getSettings)
+	mux.HandleFunc("PUT /v1/settings", s.putSettings)
+	mux.HandleFunc("GET /v1/data/stats", s.dataStats)
+	mux.HandleFunc("POST /v1/data/vacuum", s.vacuum)
+	mux.HandleFunc("POST /v1/data/integrity", s.integrity)
 	mux.HandleFunc("POST /v1/data/open", s.openData)
 	mux.HandleFunc("DELETE /v1/data", s.clearData)
 	return s.protect(mux)
@@ -402,6 +408,55 @@ func (s *Server) wol(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, res)
+}
+
+func (s *Server) getSettings(w http.ResponseWriter, r *http.Request) {
+	st, err := s.eng.Settings(r.Context())
+	if err != nil {
+		s.fail(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, st)
+}
+
+func (s *Server) putSettings(w http.ResponseWriter, r *http.Request) {
+	var st model.Settings
+	if err := decode(r, &st); err != nil {
+		s.fail(w, err)
+		return
+	}
+	if err := s.eng.UpdateSettings(r.Context(), st); err != nil {
+		s.fail(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, st)
+}
+
+func (s *Server) dataStats(w http.ResponseWriter, r *http.Request) {
+	stats, err := s.eng.DatabaseStats(r.Context(), s.cfg.DBPath)
+	if err != nil {
+		s.fail(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, stats)
+}
+
+func (s *Server) vacuum(w http.ResponseWriter, r *http.Request) {
+	if err := s.eng.Vacuum(r.Context()); err != nil {
+		s.fail(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, model.MaintenanceResult{Success: true, Message: "Database defragmented and compacted successfully."})
+}
+
+func (s *Server) integrity(w http.ResponseWriter, r *http.Request) {
+	res, err := s.eng.IntegrityCheck(r.Context())
+	if err != nil {
+		s.fail(w, err)
+		return
+	}
+	msg := fmt.Sprintf("Integrity check result: %s", res)
+	writeJSON(w, http.StatusOK, model.MaintenanceResult{Success: res == "ok", Message: msg})
 }
 
 func (s *Server) openData(w http.ResponseWriter, r *http.Request) {

@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNetwork } from '../context/NetworkContext';
 import { useTheme } from '../context/ThemeContext';
+import { AppSettings, DatabaseStats } from '../types/settings';
 import {
   ShieldCheck,
   HardDrive,
@@ -9,7 +10,16 @@ import {
   RefreshCw,
   Check,
   Trash2,
-  FolderOpen
+  FolderOpen,
+  Sun,
+  Moon,
+  Github,
+  ExternalLink,
+  Code2,
+  Radio,
+  Database,
+  AlertCircle,
+  RotateCw
 } from 'lucide-react';
 
 export const Settings: React.FC = () => {
@@ -30,10 +40,52 @@ export const Settings: React.FC = () => {
   const [notifyDeviceOffline, setNotifyDeviceOffline] = useState(false);
   const [notifyNetworkChange, setNotifyNetworkChange] = useState(true);
 
-  // Feedback states
-  const [resetMessage, setResetMessage] = useState<string | null>(null);
+  // Database stats & Maintenance states
+  const [dbStats, setDbStats] = useState<DatabaseStats | null>(null);
+  const [isBusy, setIsBusy] = useState(false);
+  const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+
+  const showFeedback = (type: 'success' | 'error', message: string) => {
+    setFeedback({ type, message });
+    setTimeout(() => setFeedback(null), 4000);
+  };
+
+  // Load persistent settings & DB stats on mount
+  useEffect(() => {
+    let isMounted = true;
+    if (service.getSettings) {
+      service.getSettings().then(s => {
+        if (!isMounted || !s) return;
+        setAutoDiscovery(s.autoDiscovery);
+        setScanInterval(s.scanInterval);
+        setNotifyNewDevice(s.notifyNewDevice);
+        setNotifyDeviceOffline(s.notifyDeviceOffline);
+        setNotifyNetworkChange(s.notifyNetworkChange);
+        setLaunchAtStartup(s.launchAtStartup);
+        setStartMinimized(s.startMinimized);
+      }).catch(() => {});
+    }
+    if (service.getDatabaseStats) {
+      service.getDatabaseStats().then(stats => {
+        if (!isMounted || !stats) return;
+        setDbStats(stats);
+      }).catch(() => {});
+    }
+    return () => { isMounted = false; };
+  }, [service]);
+
+  const saveSetting = async (key: keyof AppSettings, val: any) => {
+    try {
+      if (service.updateSettings) {
+        await service.updateSettings({ [key]: val });
+      }
+    } catch (err) {
+      console.error('Failed to persist setting', key, err);
+    }
+  };
 
   const handleResetData = async () => {
+    setIsBusy(true);
     try {
       if (service.isSimulated || !service.clearHistory) {
         await setPrototypeStatePreset('normal');
@@ -41,20 +93,60 @@ export const Settings: React.FC = () => {
         await service.clearHistory();
         await refresh();
       }
-      setResetMessage('Local device records and event history were cleared.');
+      if (service.getDatabaseStats) {
+        const stats = await service.getDatabaseStats();
+        setDbStats(stats);
+      }
+      showFeedback('success', 'Local device records and event history were cleared.');
     } catch (e) {
-      setResetMessage(e instanceof Error ? e.message : 'Could not clear history.');
+      showFeedback('error', e instanceof Error ? e.message : 'Could not clear history.');
+    } finally {
+      setIsBusy(false);
     }
-    setTimeout(() => setResetMessage(null), 3500);
   };
 
   const handleOpenData = async () => {
     try {
       await service.openDataFolder?.();
+      showFeedback('success', 'Data folder opened in Windows Explorer.');
     } catch (e) {
-      setResetMessage(e instanceof Error ? e.message : 'Could not open the data folder.');
-      setTimeout(() => setResetMessage(null), 3500);
+      showFeedback('error', e instanceof Error ? e.message : 'Could not open the data folder.');
     }
+  };
+
+  const handleVacuum = async () => {
+    setIsBusy(true);
+    try {
+      const res = await service.vacuumDatabase?.();
+      if (service.getDatabaseStats) {
+        const stats = await service.getDatabaseStats();
+        setDbStats(stats);
+      }
+      showFeedback('success', res?.message || 'Database compacted and defragmented successfully.');
+    } catch (e) {
+      showFeedback('error', e instanceof Error ? e.message : 'Database VACUUM compaction failed.');
+    } finally {
+      setIsBusy(false);
+    }
+  };
+
+  const handleIntegrity = async () => {
+    setIsBusy(true);
+    try {
+      const res = await service.integrityCheck?.();
+      showFeedback(res?.success ? 'success' : 'error', res?.message || 'Integrity check finished.');
+    } catch (e) {
+      showFeedback('error', e instanceof Error ? e.message : 'Database integrity check failed.');
+    } finally {
+      setIsBusy(false);
+    }
+  };
+
+  const formatBytes = (bytes: number) => {
+    if (!bytes || bytes <= 0) return '0 B';
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
   };
 
   return (
@@ -70,7 +162,7 @@ export const Settings: React.FC = () => {
       </div>
 
       {/* PRIVACY SECTION (Mandatory trust-building element - Section 22) */}
-      <div className="bg-white dark:bg-neutral-850 border-2 border-emerald-500/30 dark:border-emerald-500/40 rounded-lg p-5 space-y-4 shadow-xs">
+      <div className="bg-white dark:bg-neutral-900 border-2 border-emerald-500/30 dark:border-emerald-500/40 rounded-lg p-5 space-y-4 shadow-xs transition-colors">
         <div className="flex items-center gap-2 text-sm font-bold text-neutral-900 dark:text-neutral-100">
           <ShieldCheck className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
           <span>Local-First & Privacy Guarantee</span>
@@ -108,14 +200,14 @@ export const Settings: React.FC = () => {
             Local SQLite Source of Truth
           </div>
           <div className="p-2.5 rounded bg-neutral-100 dark:bg-neutral-900 font-mono text-[11px] text-neutral-700 dark:text-neutral-300 flex items-center justify-between break-all">
-            <span>C:\Users\User\AppData\Local\NetWatch\data\network.db</span>
-            <span className="text-[10px] text-neutral-400 shrink-0 ml-2">WAL Mode</span>
+            <span>{dbStats?.dbPath || '%LOCALAPPDATA%\\NetWatch\\data\\network.db'}</span>
+            <span className="text-[10px] text-neutral-400 shrink-0 ml-2">{dbStats?.walEnabled !== false ? 'WAL Mode' : 'Rollback Mode'}</span>
           </div>
         </div>
       </div>
 
       {/* GENERAL (Section 22) */}
-      <div className="bg-white dark:bg-neutral-850 border border-neutral-200 dark:border-neutral-800 rounded-lg p-5 space-y-4 shadow-xs">
+      <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg p-5 space-y-4 shadow-xs transition-colors">
         <div className="text-xs font-bold text-neutral-900 dark:text-neutral-100 uppercase tracking-wider">
           General
         </div>
@@ -131,7 +223,11 @@ export const Settings: React.FC = () => {
               </div>
             </div>
             <button
-              onClick={() => setLaunchAtStartup(!launchAtStartup)}
+              onClick={() => {
+                const next = !launchAtStartup;
+                setLaunchAtStartup(next);
+                saveSetting('launchAtStartup', next);
+              }}
               className={`w-11 h-6 rounded-full transition-colors relative p-0.5 ${
                 launchAtStartup ? 'bg-neutral-900 dark:bg-neutral-100' : 'bg-neutral-300 dark:bg-neutral-700'
               }`}
@@ -177,7 +273,11 @@ export const Settings: React.FC = () => {
               </div>
             </div>
             <button
-              onClick={() => setStartMinimized(!startMinimized)}
+              onClick={() => {
+                const next = !startMinimized;
+                setStartMinimized(next);
+                saveSetting('startMinimized', next);
+              }}
               className={`w-11 h-6 rounded-full transition-colors relative p-0.5 ${
                 startMinimized ? 'bg-neutral-900 dark:bg-neutral-100' : 'bg-neutral-300 dark:bg-neutral-700'
               }`}
@@ -199,26 +299,30 @@ export const Settings: React.FC = () => {
                 Select interface display mode
               </div>
             </div>
-            <div className="flex gap-1 bg-neutral-100 dark:bg-neutral-800 p-0.5 rounded border border-neutral-200 dark:border-neutral-700">
+            <div className="flex gap-1.5 bg-neutral-100 dark:bg-neutral-800/80 p-1 rounded-md border border-neutral-200 dark:border-neutral-700">
               <button
+                type="button"
                 onClick={() => setTheme('light')}
-                className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
+                className={`px-3 py-1.5 rounded text-xs font-medium transition-all flex items-center gap-1.5 ${
                   theme === 'light'
-                    ? 'bg-white text-neutral-900 shadow-xs'
-                    : 'text-neutral-500 hover:text-neutral-800'
+                    ? 'bg-white text-neutral-900 shadow-xs border border-neutral-200/60 font-semibold'
+                    : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-800 dark:hover:text-neutral-200'
                 }`}
               >
-                Light
+                <Sun className={`w-3.5 h-3.5 ${theme === 'light' ? 'text-amber-500' : 'text-neutral-400'}`} />
+                <span>Light</span>
               </button>
               <button
+                type="button"
                 onClick={() => setTheme('dark')}
-                className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
+                className={`px-3 py-1.5 rounded text-xs font-medium transition-all flex items-center gap-1.5 ${
                   theme === 'dark'
-                    ? 'bg-neutral-700 text-white shadow-xs'
-                    : 'text-neutral-400 hover:text-neutral-200'
+                    ? 'bg-neutral-700 text-white shadow-xs border border-neutral-600 font-semibold'
+                    : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-800 dark:hover:text-neutral-200'
                 }`}
               >
-                Dark
+                <Moon className={`w-3.5 h-3.5 ${theme === 'dark' ? 'text-sky-300' : 'text-neutral-400'}`} />
+                <span>Dark</span>
               </button>
             </div>
           </div>
@@ -226,7 +330,7 @@ export const Settings: React.FC = () => {
       </div>
 
       {/* SCANNING SETTINGS (Section 22) */}
-      <div className="bg-white dark:bg-neutral-850 border border-neutral-200 dark:border-neutral-800 rounded-lg p-5 space-y-4 shadow-xs">
+      <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg p-5 space-y-4 shadow-xs transition-colors">
         <div className="text-xs font-bold text-neutral-900 dark:text-neutral-100 uppercase tracking-wider">
           Scanning & Discovery
         </div>
@@ -242,7 +346,11 @@ export const Settings: React.FC = () => {
               </div>
             </div>
             <button
-              onClick={() => setAutoDiscovery(!autoDiscovery)}
+              onClick={() => {
+                const next = !autoDiscovery;
+                setAutoDiscovery(next);
+                saveSetting('autoDiscovery', next);
+              }}
               className={`w-11 h-6 rounded-full transition-colors relative p-0.5 ${
                 autoDiscovery ? 'bg-neutral-900 dark:bg-neutral-100' : 'bg-neutral-300 dark:bg-neutral-700'
               }`}
@@ -266,7 +374,11 @@ export const Settings: React.FC = () => {
             </div>
             <select
               value={scanInterval}
-              onChange={e => setScanInterval(e.target.value)}
+              onChange={e => {
+                const next = e.target.value;
+                setScanInterval(next);
+                saveSetting('scanInterval', next);
+              }}
               className="bg-white dark:bg-neutral-800 text-xs border border-neutral-300 dark:border-neutral-700 rounded px-2.5 py-1 text-neutral-800 dark:text-neutral-200"
             >
               <option value="1m">1 minute</option>
@@ -280,7 +392,7 @@ export const Settings: React.FC = () => {
       </div>
 
       {/* NOTIFICATIONS (Section 22) */}
-      <div className="bg-white dark:bg-neutral-850 border border-neutral-200 dark:border-neutral-800 rounded-lg p-5 space-y-4 shadow-xs">
+      <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg p-5 space-y-4 shadow-xs transition-colors">
         <div className="text-xs font-bold text-neutral-900 dark:text-neutral-100 uppercase tracking-wider">
           Windows Notifications
         </div>
@@ -296,7 +408,11 @@ export const Settings: React.FC = () => {
               </div>
             </div>
             <button
-              onClick={() => setNotifyNewDevice(!notifyNewDevice)}
+              onClick={() => {
+                const next = !notifyNewDevice;
+                setNotifyNewDevice(next);
+                saveSetting('notifyNewDevice', next);
+              }}
               className={`w-11 h-6 rounded-full transition-colors relative p-0.5 ${
                 notifyNewDevice ? 'bg-neutral-900 dark:bg-neutral-100' : 'bg-neutral-300 dark:bg-neutral-700'
               }`}
@@ -319,7 +435,11 @@ export const Settings: React.FC = () => {
               </div>
             </div>
             <button
-              onClick={() => setNotifyDeviceOffline(!notifyDeviceOffline)}
+              onClick={() => {
+                const next = !notifyDeviceOffline;
+                setNotifyDeviceOffline(next);
+                saveSetting('notifyDeviceOffline', next);
+              }}
               className={`w-11 h-6 rounded-full transition-colors relative p-0.5 ${
                 notifyDeviceOffline ? 'bg-neutral-900 dark:bg-neutral-100' : 'bg-neutral-300 dark:bg-neutral-700'
               }`}
@@ -342,7 +462,11 @@ export const Settings: React.FC = () => {
               </div>
             </div>
             <button
-              onClick={() => setNotifyNetworkChange(!notifyNetworkChange)}
+              onClick={() => {
+                const next = !notifyNetworkChange;
+                setNotifyNetworkChange(next);
+                saveSetting('notifyNetworkChange', next);
+              }}
               className={`w-11 h-6 rounded-full transition-colors relative p-0.5 ${
                 notifyNetworkChange ? 'bg-neutral-900 dark:bg-neutral-100' : 'bg-neutral-300 dark:bg-neutral-700'
               }`}
@@ -357,38 +481,183 @@ export const Settings: React.FC = () => {
         </div>
       </div>
 
-      {/* DATABASE MAINTENANCE */}
-      <div className="bg-white dark:bg-neutral-850 border border-neutral-200 dark:border-neutral-800 rounded-lg p-5 space-y-3 shadow-xs">
-        <div className="text-xs font-bold text-neutral-900 dark:text-neutral-100 uppercase tracking-wider">
-          Database Maintenance
+      {/* DATABASE MAINTENANCE & LIVE INSPECTION */}
+      <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg p-5 space-y-4 shadow-xs transition-colors">
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          <div>
+            <div className="text-xs font-bold text-neutral-900 dark:text-neutral-100 uppercase tracking-wider flex items-center gap-2">
+              <Database className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+              <span>Database Inspection & Maintenance</span>
+            </div>
+            <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">
+              Monitor local SQLite health, execute storage maintenance, and inspect data files.
+            </p>
+          </div>
+          {dbStats && (
+            <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+              {dbStats.walEnabled ? 'WAL Mode Active' : 'Rollback Journal'}
+            </span>
+          )}
         </div>
-        <p className="text-xs text-neutral-500">
-          Reset local device records, ARP cache, and event history back to initial setup.
-        </p>
 
-        {resetMessage && (
-          <div className="p-2.5 rounded bg-emerald-50 dark:bg-emerald-950/70 border border-emerald-200 dark:border-emerald-800 text-xs text-emerald-800 dark:text-emerald-300 flex items-center gap-2">
-            <Check className="w-3.5 h-3.5 shrink-0" />
-            <span>{resetMessage}</span>
+        {/* Live DB Stats Card */}
+        <div className="p-3 rounded bg-neutral-50 dark:bg-neutral-950/60 border border-neutral-200 dark:border-neutral-800 grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+          <div>
+            <span className="text-[10px] uppercase font-semibold text-neutral-400 block">Database Size</span>
+            <span className="font-mono font-medium text-neutral-800 dark:text-neutral-200">
+              {formatBytes(dbStats?.fileSizeBytes ?? 61440)}
+            </span>
+          </div>
+          <div>
+            <span className="text-[10px] uppercase font-semibold text-neutral-400 block">Devices Stored</span>
+            <span className="font-mono font-medium text-neutral-800 dark:text-neutral-200">
+              {dbStats?.deviceCount ?? 0}
+            </span>
+          </div>
+          <div>
+            <span className="text-[10px] uppercase font-semibold text-neutral-400 block">Event History</span>
+            <span className="font-mono font-medium text-neutral-800 dark:text-neutral-200">
+              {dbStats?.eventCount ?? 0}
+            </span>
+          </div>
+          <div>
+            <span className="text-[10px] uppercase font-semibold text-neutral-400 block">Scan Records</span>
+            <span className="font-mono font-medium text-neutral-800 dark:text-neutral-200">
+              {dbStats?.scanCount ?? 0}
+            </span>
+          </div>
+        </div>
+
+        {/* Dynamic File Path */}
+        <div className="p-2.5 rounded bg-neutral-100 dark:bg-neutral-900 font-mono text-[11px] text-neutral-700 dark:text-neutral-300 flex items-center justify-between break-all border border-neutral-200 dark:border-neutral-800">
+          <span className="truncate">{dbStats?.dbPath || '%LOCALAPPDATA%\\NetWatch\\data\\network.db'}</span>
+          <span className="text-[10px] text-emerald-600 dark:text-emerald-400 shrink-0 ml-2 font-sans font-medium">Local SQLite</span>
+        </div>
+
+        {/* Feedback alert (distinct success vs error) */}
+        {feedback && (
+          <div className={`p-2.5 rounded text-xs flex items-center gap-2 border ${
+            feedback.type === 'success'
+              ? 'bg-emerald-50 dark:bg-emerald-950/70 border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300'
+              : 'bg-red-50 dark:bg-red-950/70 border-red-200 dark:border-red-800 text-red-800 dark:text-red-300'
+          }`}>
+            {feedback.type === 'success' ? (
+              <Check className="w-3.5 h-3.5 shrink-0" />
+            ) : (
+              <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+            )}
+            <span>{feedback.message}</span>
           </div>
         )}
 
-        <button
-          onClick={handleResetData}
-          className="px-3.5 py-1.5 bg-neutral-100 dark:bg-neutral-800 hover:bg-red-50 dark:hover:bg-red-950/50 hover:text-red-600 dark:hover:text-red-400 text-neutral-700 dark:text-neutral-300 rounded text-xs font-medium border border-neutral-300 dark:border-neutral-700 transition-colors flex items-center gap-1.5"
-        >
-          <Trash2 className="w-3.5 h-3.5" />
-          <span>{service.isSimulated ? 'Reset Local Database' : 'Clear History'}</span>
-        </button>
-        {!service.isSimulated && (
+        {/* Action Buttons */}
+        <div className="flex flex-wrap items-center gap-2 pt-1">
           <button
             onClick={handleOpenData}
-            className="ml-2 px-3.5 py-1.5 bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-300 rounded text-xs font-medium border border-neutral-300 dark:border-neutral-700 transition-colors inline-flex items-center gap-1.5"
+            disabled={isBusy}
+            className="px-3.5 py-1.5 bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-300 rounded text-xs font-medium border border-neutral-300 dark:border-neutral-700 transition-colors inline-flex items-center gap-1.5 disabled:opacity-50"
           >
             <FolderOpen className="w-3.5 h-3.5" />
             <span>Open Data Folder</span>
           </button>
-        )}
+
+          <button
+            onClick={handleVacuum}
+            disabled={isBusy}
+            className="px-3.5 py-1.5 bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-300 rounded text-xs font-medium border border-neutral-300 dark:border-neutral-700 transition-colors inline-flex items-center gap-1.5 disabled:opacity-50"
+            title="Defragment and shrink database file on disk"
+          >
+            <RotateCw className={`w-3.5 h-3.5 ${isBusy ? 'animate-spin' : ''}`} />
+            <span>Compact (VACUUM)</span>
+          </button>
+
+          <button
+            onClick={handleIntegrity}
+            disabled={isBusy}
+            className="px-3.5 py-1.5 bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-300 rounded text-xs font-medium border border-neutral-300 dark:border-neutral-700 transition-colors inline-flex items-center gap-1.5 disabled:opacity-50"
+            title="Execute SQLite PRAGMA integrity_check"
+          >
+            <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+            <span>Check Integrity</span>
+          </button>
+
+          <button
+            onClick={handleResetData}
+            disabled={isBusy}
+            className="px-3.5 py-1.5 bg-neutral-100 dark:bg-neutral-800 hover:bg-red-50 dark:hover:bg-red-950/50 hover:text-red-600 dark:hover:text-red-400 text-neutral-700 dark:text-neutral-300 rounded text-xs font-medium border border-neutral-300 dark:border-neutral-700 transition-colors flex items-center gap-1.5 disabled:opacity-50"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+            <span>{service.isSimulated ? 'Reset Mock Data' : 'Clear History'}</span>
+          </button>
+        </div>
+      </div>
+
+      {/* About & Developer Identity */}
+      <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg p-5 shadow-xs transition-colors">
+        <div className="flex items-start justify-between flex-wrap gap-3">
+          <div className="flex items-center gap-3">
+            <img src="/favicon.svg" alt="NETWATCH Logo" className="w-10 h-10 rounded-xl shadow-xs shrink-0" />
+            <div>
+              <h2 className="text-sm font-semibold text-neutral-900 dark:text-neutral-100 flex items-center gap-2">
+                NETWATCH Desktop
+                <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
+                  v0.1.0-dev
+                </span>
+              </h2>
+              <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">
+                Super Fast Network Scanner &amp; Local Hardware Inventory
+              </p>
+            </div>
+          </div>
+
+          <a
+            href="https://github.com/alwkala/NETWATCH"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-medium bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-200 border border-neutral-300 dark:border-neutral-700 transition-colors"
+          >
+            <Github className="w-3.5 h-3.5" />
+            <span>GitHub Repository</span>
+            <ExternalLink className="w-3 h-3 text-neutral-400" />
+          </a>
+        </div>
+
+        <div className="mt-4 pt-4 border-t border-neutral-100 dark:border-neutral-800/80 grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+          <div className="p-3 rounded bg-neutral-50 dark:bg-neutral-950/50 border border-neutral-200/60 dark:border-neutral-800/60">
+            <span className="text-[10px] uppercase tracking-wider font-semibold text-neutral-400 block mb-1">
+              Architecture
+            </span>
+            <span className="font-medium text-neutral-700 dark:text-neutral-300 flex items-center gap-1.5">
+              <Cpu className="w-3.5 h-3.5 text-emerald-500" />
+              Go Engine + Wails v2
+            </span>
+          </div>
+
+          <div className="p-3 rounded bg-neutral-50 dark:bg-neutral-950/50 border border-neutral-200/60 dark:border-neutral-800/60">
+            <span className="text-[10px] uppercase tracking-wider font-semibold text-neutral-400 block mb-1">
+              Data Privacy
+            </span>
+            <span className="font-medium text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
+              <ShieldCheck className="w-3.5 h-3.5" />
+              100% Offline / Zero Telemetry
+            </span>
+          </div>
+
+          <div className="p-3 rounded bg-neutral-50 dark:bg-neutral-950/50 border border-neutral-200/60 dark:border-neutral-800/60">
+            <span className="text-[10px] uppercase tracking-wider font-semibold text-neutral-400 block mb-1">
+              Studio &amp; Engineering
+            </span>
+            <span className="font-medium text-neutral-700 dark:text-neutral-300 flex items-center gap-1.5">
+              <Code2 className="w-3.5 h-3.5 text-blue-500" />
+              Engineered by Alwkala
+            </span>
+          </div>
+        </div>
+
+        <div className="mt-3 text-[11px] text-neutral-400 dark:text-neutral-500 flex items-center justify-between flex-wrap gap-2">
+          <span>Dual Licensed under MIT &amp; Apache 2.0</span>
+          <span>Know Every Device on Your LAN. Without the Cloud Watching.</span>
+        </div>
       </div>
     </div>
   );

@@ -1,7 +1,35 @@
+# Dependencies
 frontend/node_modules/
+
+# Frontend build outputs
 frontend/dist/*
 !frontend/dist/.gitkeep
+
+# Desktop & Go binary build outputs
 build/bin/
 prototype/
 *.exe
-/.agents
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+
+# Local runtime logs & databases
+*.log
+*.db
+*.db-journal
+*.db-wal
+
+# Agent & IDE local directories
+/.agents/
+.vscode/
+.idea/
+
+# Operating System temporary files
+.DS_Store
+Thumbs.db
+desktop.ini
+AGENTS.md
+*.md
+AGENTS.md

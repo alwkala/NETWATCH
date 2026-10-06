@@ -35,9 +35,54 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Updated repository topics and description on GitHub via `gh` CLI: *"Super Fast Network Scanner & Device Inventory. Instant LAN discovery, 100% offline, zero cloud."*
 
 ### Fixed
+- **Dark Mode Variant Resolution (Tailwind CSS v4)**:
+  - Added explicit `@custom-variant dark (&:where(.dark, .dark *));` to `frontend/src/index.css` to enable class-based dark mode switching in Tailwind CSS v4.
+  - Removed hardcoded dark body background in `frontend/index.html` and enabled adaptive transitions (`bg-neutral-100 text-neutral-900 dark:bg-neutral-950 dark:text-neutral-100`).
+  - Added dynamic fallback to `prefers-color-scheme` in `ThemeContext.tsx` when no localStorage preference is set.
 - **Windows ARP Table Desynchronization**:
   - Corrected `ipNetRowSize` in `internal/netenv/env_windows.go` from `28` to `24` bytes (`sizeof(MIB_IPNETROW)` on Windows). Previously, the 4-byte offset drift per row corrupted row parsing, causing the Default Gateway (`192.168.1.1`) and most neighboring devices to be skipped.
 - **Network Topology Router Inspection**:
   - Updated `frontend/src/pages/Network.tsx` to match the actual gateway device by IP and type dynamically, and eliminated the static mock TP-Link fallback that caused the "No device selected" screen upon clicking.
 - Fixed missing imports in `cmd/netwatchd/main.go` (`os/exec`, `syscall`) and `main.go` (`netwatch/internal/appdata`).
 - Cleaned up proxy mirror `replace` directives in `go.mod` for direct, clean module resolution on standard Windows environments.
+
+### Changed & Improved
+- **Desktop Window & Header Customization**:
+  - Eliminated redundant simulated `<TitleBar />` in production desktop host, reclaiming vertical space and aligning with Windows native frame controls.
+  - Added embedded multi-resolution Windows application icon resource (`rsrc_windows_amd64.syso`) with Icon ID 3 mapping (`winc.AppIconID = 3`) generated via `go-winres` for native Windows TitleBar, Taskbar, Alt+Tab, and Explorer integration.
+  - Integrated official vector `favicon.svg` directly into the Sidebar logo lockup and Settings About card.
+  - Set native window title to `NETWATCH — Local Network Intelligence`.
+  - Added window background color in Wails options to prevent white flashes upon window creation.
+- **Search & Scan Performance Optimization**:
+  - Integrated React 19 `useDeferredValue` into device and event search filters for zero-latency, 60 FPS input response.
+  - Slashed Quick Scan duration with tighter LAN ICMP ping timeouts (`200ms`), optimized TCP fallback discovery on primary ports (`150ms`), and accelerated reverse DNS lookup (`200ms`).
+- **Developer & Application Identity**:
+  - Added Alwkala developer identity capsule to the Sidebar footer with pulsing engine status, version tag, and GitHub link.
+  - Added dedicated **About NETWATCH & Alwkala Engineering** panel in Settings displaying architecture details, privacy invariants, and open-source licenses.
+- **Scan & Search UI Consolidation**:
+  - Resolved visual and semantic duplication between network probing (`Scan`) and device text filtering (`Search`).
+  - Unified the global scan action in `TopBar` with the dedicated `Radar` icon, automatically hiding it when navigating to the dedicated `Scanner` page to prevent stacked button redundancy.
+  - Eliminated redundant `Scan Subnet` and `Scan Network` buttons from the page headers in `Devices` and `Dashboard`.
+  - Restricted the `Search` (magnifying glass) icon strictly to text query inputs (`DeviceTable`).
+  - Standardized the repeat scan button in the `Scanner` page to `Rescan` with a sync icon.
+- **Database Management & Settings Persistence (Milestone 3)**:
+  - Implemented persistent user preferences in SQLite (`GET /v1/settings`, `PUT /v1/settings`) stored in `meta` table, seamlessly bound to UI toggles.
+  - Added live Database Inspection & Health panel in Settings with real-time stats: database file size, stored devices, events, scans, and WAL mode indicators (`GET /v1/data/stats`).
+  - Fixed Windows Explorer path resolution in `OpenDataFolder` using absolute `%WINDIR%\explorer.exe` or `C:\Windows\explorer.exe` fallback across `app.go` and `cmd/netwatchd/main.go`.
+  - Added direct database maintenance actions: SQLite VACUUM compaction (`POST /v1/data/vacuum`) and integrity validation (`POST /v1/data/integrity`).
+  - Resolved UI feedback error display: differentiated green success alerts (`Check`) from red error alerts (`AlertCircle`).
+- **Cross-Platform CI & Daemon Build Stability**:
+  - Split `cmd/netwatchd` data folder opener into `openfolder_windows.go` (Windows `syscall.SysProcAttr{HideWindow: true}`) and `openfolder_other.go` (Linux `xdg-open` / macOS `open`), resolving compilation failure on Linux/macOS runners.
+  - Added `frontend/dist/.gitkeep` ensuring clean checkouts compile successfully without missing embed directory errors.
+  - Removed residual generator critique markers from `.github/workflows/ci.yml`, `SECURITY.md`, and `.github/CODEOWNERS`.
+- **API & Store Unit Test Coverage**:
+  - Added test suite in `internal/api/server_test.go` covering triple-layer loopback security invariants (192-bit Bearer token, anti-DNS rebinding Host check, Origin allow-lists), unauthenticated `/health`, and REST endpoints.
+  - Added test suite in `internal/store/store_test.go` covering SQLite migrations, writeset transactions, device patch updates, settings persistence, database metrics, VACUUM compaction, and integrity validation.
+- **Documentation Refinements**:
+  - Refined Linux netenv documentation to accurately cite `/proc/net/arp`.
+  - Clarified sweep performance description to focus on concurrent ARP/ICMP/TCP parallel probing.
+  - Clarified packaging status: standalone portable `.exe` active, installer scheduled for M7.
+  - Added security advisory on `-token` flag visibility in local process tables for `netwatchd`.
+  - Updated `THREAT_MODEL.md` Repudiation mitigation to explicitly describe user-controlled local ledger clearing.
+
+

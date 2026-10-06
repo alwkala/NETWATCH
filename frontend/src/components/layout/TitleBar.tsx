@@ -1,10 +1,7 @@
 import React, { useState } from 'react';
 import { useNetwork, PrototypeStatePreset } from '../../context/NetworkContext';
-import { useTheme } from '../../context/ThemeContext';
 import {
   Activity,
-  Sun,
-  Moon,
   Minus,
   Square,
   X,
@@ -15,7 +12,6 @@ import {
 export const TitleBar: React.FC = () => {
   const { prototypeState, setPrototypeStatePreset, service } = useNetwork();
   const simulated = service.isSimulated;
-  const { theme, toggleTheme } = useTheme();
   const [showPresetMenu, setShowPresetMenu] = useState(false);
   const [isMaximized, setIsMaximized] = useState(false);
 
@@ -68,7 +64,7 @@ export const TitleBar: React.FC = () => {
               className="fixed inset-0 z-40"
               onClick={() => setShowPresetMenu(false)}
             />
-            <div className="absolute left-1/2 -translate-x-1/2 mt-1 w-64 bg-white dark:bg-neutral-850 rounded-md shadow-xl border border-neutral-200 dark:border-neutral-700 py-1.5 z-50 text-left">
+            <div className="absolute left-1/2 -translate-x-1/2 mt-1 w-64 bg-white dark:bg-neutral-900 rounded-md shadow-xl border border-neutral-200 dark:border-neutral-700 py-1.5 z-50 text-left">
               <div className="px-3 py-1 text-[10px] font-semibold text-neutral-400 dark:text-neutral-500 uppercase tracking-wider border-b border-neutral-100 dark:border-neutral-800">
                 Prototype State Presets (Sec. 34)
               </div>
@@ -97,20 +93,8 @@ export const TitleBar: React.FC = () => {
       </div>
       )}
 
-      {/* Right: Theme & Windows Window Controls */}
+      {/* Right: Windows Window Controls (simulated prototype only) */}
       <div className="flex items-center gap-1 -mr-2">
-        <button
-          onClick={toggleTheme}
-          className="p-1.5 hover:bg-neutral-200 dark:hover:bg-neutral-800 rounded text-neutral-600 dark:text-neutral-400 transition-colors"
-          title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} mode`}
-          aria-label="Toggle theme"
-        >
-          {theme === 'dark' ? (
-            <Sun className="w-3.5 h-3.5 text-amber-400" />
-          ) : (
-            <Moon className="w-3.5 h-3.5 text-neutral-600" />
-          )}
-        </button>
 
         {/* Window controls are only drawn in the browser prototype; the Wails host has a native frame */}
         {simulated && (

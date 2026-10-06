@@ -5,7 +5,7 @@ import { TableLoadingSkeleton } from '../components/ui/LoadingSkeleton';
 import { ErrorState } from '../components/ui/ErrorState';
 import {
   RotateCw,
-  Search,
+  Radar,
   Plus,
   Radio
 } from 'lucide-react';
@@ -49,9 +49,10 @@ export const Devices: React.FC = () => {
         <button
           onClick={() => startScan('quick')}
           disabled={isScanning}
-          className="px-4 py-2 bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 text-xs font-semibold rounded"
+          className="px-4 py-2 bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 text-xs font-semibold rounded flex items-center gap-2 hover:bg-neutral-800 dark:hover:bg-white transition-colors"
         >
-          Scan Network
+          <Radar className="w-3.5 h-3.5 text-emerald-500" />
+          <span>Scan Network</span>
         </button>
       </div>
     );
@@ -75,35 +76,19 @@ export const Devices: React.FC = () => {
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
-          {/* Quick test: simulate discovery of a new device (prototype only) */}
-          {service.isSimulated && (<button
-            onClick={() => addNewSimulatedDevice()}
-            className="px-3 py-1.5 bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-300 rounded text-xs font-medium border border-neutral-200 dark:border-neutral-700 flex items-center gap-1.5 transition-colors"
-            title="Simulate detecting a new hardware device"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            <span>Simulate New Device</span>
-          </button>)}
-
-          <button
-            onClick={() => startScan('quick')}
-            disabled={isScanning}
-            className="px-3.5 py-1.5 bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-950 hover:bg-neutral-800 dark:hover:bg-white rounded text-xs font-semibold flex items-center gap-1.5 transition-colors"
-          >
-            {isScanning ? (
-              <>
-                <RotateCw className="w-3.5 h-3.5 animate-spin" />
-                <span>Scanning...</span>
-              </>
-            ) : (
-              <>
-                <Search className="w-3.5 h-3.5" />
-                <span>Scan Subnet</span>
-              </>
-            )}
-          </button>
-        </div>
+        {/* Action controls (simulation only in prototype) */}
+        {service.isSimulated && (
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => addNewSimulatedDevice()}
+              className="px-3 py-1.5 bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-300 rounded text-xs font-medium border border-neutral-200 dark:border-neutral-700 flex items-center gap-1.5 transition-colors"
+              title="Simulate detecting a new hardware device"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>Simulate New Device</span>
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Main Device Table with Full Search & Sorting */}

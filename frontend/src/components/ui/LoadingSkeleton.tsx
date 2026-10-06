@@ -30,7 +30,7 @@ export const DashboardLoadingSkeleton: React.FC = () => {
       <div className="flex justify-between items-center">
         <div className="space-y-2">
           <div className="h-6 w-48 bg-neutral-200 dark:bg-neutral-800 rounded" />
-          <div className="h-4 w-32 bg-neutral-150 dark:bg-neutral-850 rounded" />
+          <div className="h-4 w-32 bg-neutral-100 dark:bg-neutral-800 rounded" />
         </div>
         <div className="h-8 w-28 bg-neutral-200 dark:bg-neutral-800 rounded" />
       </div>

@@ -6,7 +6,7 @@ import { DashboardLoadingSkeleton } from '../components/ui/LoadingSkeleton';
 import { ErrorState } from '../components/ui/ErrorState';
 import {
   RotateCw,
-  Search,
+  Radar,
   ArrowRight,
   Activity,
   PlusCircle,
@@ -72,7 +72,7 @@ export const Dashboard: React.FC = () => {
             </>
           ) : (
             <>
-              <Search className="w-4 h-4" />
+              <Radar className="w-4 h-4 text-emerald-500" />
               <span>Scan Network</span>
             </>
           )}
@@ -104,29 +104,6 @@ export const Dashboard: React.FC = () => {
             <span>·</span>
             <span>Host: <strong className="font-mono font-medium text-neutral-700 dark:text-neutral-300">{networkInfo?.localIp || '192.168.1.24'}</strong></span>
           </div>
-        </div>
-
-        <div className="flex items-center gap-2.5">
-          <button
-            onClick={() => {
-              navigateTo('scanner');
-              startScan('quick');
-            }}
-            disabled={isScanning}
-            className="px-4 py-2 bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-950 text-xs font-semibold rounded hover:bg-neutral-800 dark:hover:bg-white transition-colors flex items-center gap-2 shadow-xs disabled:opacity-50"
-          >
-            {isScanning ? (
-              <>
-                <RotateCw className="w-3.5 h-3.5 animate-spin" />
-                <span>Scanning {scanProgress.progress}%</span>
-              </>
-            ) : (
-              <>
-                <Search className="w-3.5 h-3.5" />
-                <span>Scan Network</span>
-              </>
-            )}
-          </button>
         </div>
       </div>
 
@@ -228,7 +205,7 @@ export const Dashboard: React.FC = () => {
         {/* Right Column: Recent Activity & Network Health */}
         <div className="space-y-6">
           {/* Network Health Widget (Section 11) */}
-          <div className="bg-white dark:bg-neutral-850 border border-neutral-200 dark:border-neutral-800 rounded-md p-4 space-y-3 shadow-xs">
+          <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-md p-4 space-y-3 shadow-xs transition-colors">
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-semibold tracking-wider text-neutral-500 dark:text-neutral-400 uppercase">
                 Network Health
@@ -283,7 +260,7 @@ export const Dashboard: React.FC = () => {
           </div>
 
           {/* Recent Events (Section 10) */}
-          <div className="bg-white dark:bg-neutral-850 border border-neutral-200 dark:border-neutral-800 rounded-md p-4 space-y-3 shadow-xs">
+          <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-md p-4 space-y-3 shadow-xs transition-colors">
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-semibold tracking-wider text-neutral-500 dark:text-neutral-400 uppercase">
                 Recent Activity

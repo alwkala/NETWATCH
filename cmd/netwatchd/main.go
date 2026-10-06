@@ -12,10 +12,8 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
-	"os/exec"
 	"os/signal"
 	"strings"
-	"syscall"
 
 	"netwatch/internal/api"
 	"netwatch/internal/appdata"
@@ -87,11 +85,9 @@ func run(log *slog.Logger, port int, token, dataDir, origins string) error {
 	eng := engine.New(engine.Options{Env: netenv.New(), Store: st, Logger: log})
 	eng.Start(ctx)
 
-	srv := api.New(eng, api.Config{Token: token, AllowedOrigins: extra, Version: version, Logger: log})
+	srv := api.New(eng, api.Config{Token: token, AllowedOrigins: extra, Version: version, DBPath: appdata.DBPath(dataDir), Logger: log})
 	srv.OpenDataFolder = func() error {
-		cmd := exec.Command("explorer.exe", dataDir)
-		cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
-		return cmd.Start()
+		return openFolder(dataDir)
 	}
 	ln, err := api.ListenLoopback(port)
 	if err != nil {

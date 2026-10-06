@@ -150,3 +150,44 @@ type DevicePatch struct {
 	Notes       *string `json:"notes,omitempty"`
 	IsNew       *bool   `json:"isNew,omitempty"`
 }
+
+// Settings represents persistent user preferences.
+type Settings struct {
+	AutoDiscovery       bool   `json:"autoDiscovery"`
+	ScanInterval        string `json:"scanInterval"` // "1m" | "5m" | "15m" | "1h" | "manual"
+	NotifyNewDevice     bool   `json:"notifyNewDevice"`
+	NotifyDeviceOffline bool   `json:"notifyDeviceOffline"`
+	NotifyNetworkChange bool   `json:"notifyNetworkChange"`
+	LaunchAtStartup     bool   `json:"launchAtStartup"`
+	StartMinimized      bool   `json:"startMinimized"`
+}
+
+// DefaultSettings returns safe initial preferences.
+func DefaultSettings() Settings {
+	return Settings{
+		AutoDiscovery:       true,
+		ScanInterval:        "5m",
+		NotifyNewDevice:     true,
+		NotifyDeviceOffline: false,
+		NotifyNetworkChange: true,
+		LaunchAtStartup:     false,
+		StartMinimized:      false,
+	}
+}
+
+// DatabaseStats represents SQLite status and record counts.
+type DatabaseStats struct {
+	DBPath        string `json:"dbPath"`
+	FileSizeBytes int64  `json:"fileSizeBytes"`
+	DeviceCount   int    `json:"deviceCount"`
+	EventCount    int    `json:"eventCount"`
+	ScanCount     int    `json:"scanCount"`
+	WALEnabled    bool   `json:"walEnabled"`
+}
+
+// MaintenanceResult returns outcome for operations like VACUUM or integrity check.
+type MaintenanceResult struct {
+	Success bool   `json:"success"`
+	Message string `json:"message"`
+}
+

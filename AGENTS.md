@@ -4,8 +4,10 @@ Read this file fully before changing anything. Then read `README.md`, `internal/
 (the wire contract) and `frontend/src/services/NetworkService.ts` (the UI contract).
 
 ## 1. What this product is
-NETWATCH is a **local-first, privacy-first Windows desktop network utility** (Fing-like):
-discover devices on the LAN, keep an inventory, run diagnostics, record history/events.
+NETWATCH is a **Super Fast Network Scanner & Device Inventory** (local-first, privacy-first desktop network intelligence & discovery utility):
+**"Know Every Device on Your LAN. Without the Cloud Watching."**
+Instant LAN discovery and persistent device tracking — 100% offline, zero cloud, zero telemetry.
+Architecture is cross-platform (Windows native Wails host primary, headless daemon in `cmd/netwatchd` for Linux dev/CLI, macOS on roadmap).
 
 Non-negotiable principles:
 - Network data never leaves the machine. No account, cloud, telemetry, analytics, or external API calls.
@@ -14,6 +16,7 @@ Non-negotiable principles:
 - Never invent data: unknown stays "Unknown"; no fake health scores, threat detection or AI features.
   Unimplemented features are hidden or labelled "Coming later".
 - Scanning is active (ARP/ICMP/TCP on the LAN). Only private/link-local/CGNAT IPv4 targets are allowed.
+- Formal security: see `THREAT_MODEL.md` (STRIDE analysis) and `INCIDENT_RESPONSE.md`.
 
 ## 2. Architecture
 ```
@@ -71,20 +74,21 @@ go test -race ./...    &&   (cd frontend && npx tsc --noEmit)
 Done: engine v0.1 (discovery, scan quick/full, diff/events, SQLite, ping, WoL, port probe), API, Wails host,
 UI wired to the engine, security checks, simulated-network tests.
 **Verified on real Windows**: iphlpapi ARP (`GetIpNetTable`), unprivileged ICMP (`IcmpSendEcho`), adapter and DNS discovery (`GetAdaptersAddresses`), live LAN scan (`192.168.1.0/24`), rotating file logging (`%LOCALAPPDATA%\NetWatch\data\netwatch.log`), and standalone GUI build (`build/bin/netwatch.exe`).
-Known gaps: SSID (UI falls back to interface name), mDNS/NetBIOS/SSDP names, DHCP info, settings are UI-only
-(scan interval, notifications, tray, start-with-Windows are not persisted or applied), unit tests for api/store/netenv helpers,
-installer/signing, icon/branding.
+**Governance & CI/CD live**: GitHub Actions CI with SHA-pinned actions (`.github/workflows/ci.yml`), Dependabot, dual licensing (`LICENSE-MIT` and `LICENSE-APACHE`), formal STRIDE model (`THREAT_MODEL.md`), incident response playbook (`INCIDENT_RESPONSE.md`), public roadmap (`ROADMAP.md`), and comprehensive unit test suites for `internal/api` and `internal/store`.
+Known gaps: SSID (UI falls back to interface name), mDNS/NetBIOS/SSDP names, DHCP info, scheduled auto-scan engine worker,
+Windows toast notifications, tray / start minimized / launch at startup (HKCU Run key), Playwright smoke suite, installer/signing.
 
 ## 6. Roadmap (do in this order; one milestone per PR)
+*For the public, user-facing milestone tracker, see `ROADMAP.md`.*
+
 - [x] **M1 – Validate on Windows**: verified Go engine on real LAN, iphlpapi ARP & ICMP echo, adapter discovery, Open Data Folder wired, built standalone Windows executable (`build/bin/netwatch.exe`), and added rotating file logging (`netwatch.log`).
-- [ ] **M2 – Tests & CI**: GitHub Actions established for `go test -race` (Ubuntu), `go test` + `GOOS=windows go build` (Windows), and frontend typecheck/build; Dependabot and OSS governance files configured; pending unit tests for `store`, `api` (auth, Host/Origin, SSE), `netenv` parsing helpers, and Playwright smoke against `netwatchd` with `-demo`.
-**M3 – Real settings**: persist settings in SQLite (`GET/PUT /v1/settings`); scheduled auto-scan with the chosen interval;
-Windows toast notifications for new device / offline / network change; tray + start minimized + launch at startup (HKCU Run key).
-**M4 – Better identity**: mDNS, NetBIOS, SSDP/UPnP, DHCP lease info; SSID via WLAN API; improved classification with confidence
+- [x] **M2 – CI & Governance Baseline**: GitHub Actions CI (`go test -race` on Ubuntu, `go test` + `GOOS=windows go build` on Windows), frontend typecheck/build, unit tests for API security invariants (Bearer auth, Origin/Host check) and Store transactions/persistence, Dependabot, dual licensing, formal STRIDE threat model, and incident response playbook.
+- [ ] **M3 – Real Settings & Database Management (In Progress)**: persist settings in SQLite (`GET/PUT /v1/settings` - done); database inspection & maintenance panel (live DB size, stats, WAL status, VACUUM/integrity_check, robust Open Data Folder with absolute path resolution - done); scheduled auto-scan with the chosen interval; Windows toast notifications for new device / offline / network change; tray + start minimized + launch at startup (HKCU Run key).
+- [ ] **M4 – Better Identity**: mDNS, NetBIOS, SSDP/UPnP, DHCP lease info; SSID via WLAN API; improved classification with confidence
 and an explicit "Unknown" fallback; user-editable device type; full OUI refresh script (offline file, no runtime download).
-**M5 – Diagnostics**: traceroute, DNS lookup/reverse, latency history charts per device, gateway/DNS/internet health from real probes only.
-**M6 – Data**: export JSON/CSV, retention policy, DB migrations framework with versioned schema, backup/restore.
-**M7 – Release**: MSI/NSIS installer, code signing, auto-update **opt-in only**, privacy statement matching actual behaviour.
+- [ ] **M5 – Diagnostics**: traceroute, DNS lookup/reverse, latency history charts per device, gateway/DNS/internet health from real probes only.
+- [ ] **M6 – QA, Comprehensive Tests & Data Lifecycle**: full unit & integration tests for finalized `store` and `api`, Playwright E2E smoke tests against `netwatchd` and UI, export JSON/CSV, retention policy, and DB migrations framework with versioned schema.
+- [ ] **M7 – Release**: MSI/NSIS installer, free Authenticode code signing via **SignPath.io** Foundation, auto-update **opt-in only**, privacy statement matching actual behaviour.
 Later: SNMP, topology from real LLDP/ARP data, multi-network profiles, CLI (`netwatch discover|scan|export`) on top of the engine.
 
 ## 7. When you finish a task

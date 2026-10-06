@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" fill="none">
+  <!-- Background rounded rectangle -->
+  <rect width="64" height="64" rx="14" fill="#09090b"/>
+  <rect width="64" height="64" rx="14" stroke="#27272a" stroke-width="2"/>
+  
+  <!-- Subtle radar sweep circles -->
+  <circle cx="32" cy="32" r="22" stroke="#10b981" stroke-width="1.2" stroke-opacity="0.2"/>
+  <circle cx="32" cy="32" r="14" stroke="#10b981" stroke-width="1.2" stroke-opacity="0.35"/>
+  <circle cx="32" cy="32" r="6" fill="#10b981" fill-opacity="0.2" stroke="#10b981" stroke-width="1.5"/>
+
+  <!-- Radar center blip -->
+  <circle cx="32" cy="32" r="2.5" fill="#34d399"/>
+  <circle cx="42" cy="24" r="2" fill="#10b981"/>
+  <circle cx="23" cy="38" r="1.8" fill="#10b981" fill-opacity="0.8"/>
+
+  <!-- Active signal wave / pulse path -->
+  <path d="M14 32h7l4-9 7 18 6-12 5 6h7" stroke="#10b981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

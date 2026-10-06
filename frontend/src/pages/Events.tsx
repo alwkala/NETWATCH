@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useDeferredValue } from 'react';
 import { useNetwork } from '../context/NetworkContext';
 import { EventType } from '../types/events';
 import {
@@ -14,6 +14,7 @@ export const Events: React.FC = () => {
   const { events, selectDevice, devices } = useNetwork();
   const [filterType, setFilterType] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const deferredSearch = useDeferredValue(searchQuery);
 
   const filterTabs = [
     { id: 'all', label: 'All Events' },
@@ -31,8 +32,8 @@ export const Events: React.FC = () => {
       list = list.filter(e => e.type === filterType);
     }
 
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase().trim();
+    if (deferredSearch.trim()) {
+      const q = deferredSearch.toLowerCase().trim();
       list = list.filter(
         e =>
           e.title.toLowerCase().includes(q) ||
@@ -43,7 +44,7 @@ export const Events: React.FC = () => {
     }
 
     return list;
-  }, [events, filterType, searchQuery]);
+  }, [events, filterType, deferredSearch]);
 
   return (
     <div className="p-6 space-y-4 max-w-5xl mx-auto">
@@ -65,7 +66,7 @@ export const Events: React.FC = () => {
 
       {/* Filter and Search Bar */}
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="relative flex-1 min-w-[200px] max-w-sm">
+        <div className="relative flex-1 min-w-50 max-w-sm">
           <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-neutral-400" />
           <input
             type="text"
@@ -77,7 +78,7 @@ export const Events: React.FC = () => {
         </div>
 
         {/* Filter buttons */}
-        <div className="flex flex-wrap items-center gap-1 bg-neutral-100 dark:bg-neutral-800 p-1 rounded border border-neutral-200 dark:border-neutral-750">
+        <div className="flex flex-wrap items-center gap-1 bg-neutral-100 dark:bg-neutral-800 p-1 rounded border border-neutral-200 dark:border-neutral-700">
           {filterTabs.map(tab => (
             <button
               key={tab.id}
@@ -95,7 +96,7 @@ export const Events: React.FC = () => {
       </div>
 
       {/* Events Table */}
-      <div className="bg-white dark:bg-neutral-850 border border-neutral-200 dark:border-neutral-800 rounded-md overflow-hidden shadow-xs">
+      <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-md overflow-hidden shadow-xs transition-colors">
         {filteredEvents.length === 0 ? (
           /* Empty state (Section 23) */
           <div className="p-12 text-center text-neutral-400">

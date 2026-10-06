@@ -1,6 +1,7 @@
 import { Device, DeviceEvent, DeviceService } from '../types/device';
 import { NetworkInfo, ScanResult } from '../types/network';
 import { NetworkEvent } from '../types/events';
+import { AppSettings, DatabaseStats, MaintenanceResult } from '../types/settings';
 import { NetworkService, ScanProgressCallback } from './NetworkService';
 
 export interface EngineConnection {
@@ -192,6 +193,26 @@ export class HttpNetworkService implements NetworkService {
 
   async openDataFolder(): Promise<void> {
     await this.request('POST', '/v1/data/open');
+  }
+
+  async getSettings(): Promise<AppSettings> {
+    return this.request<AppSettings>('GET', '/v1/settings');
+  }
+
+  async updateSettings(settings: Partial<AppSettings>): Promise<AppSettings> {
+    return this.request<AppSettings>('PUT', '/v1/settings', settings);
+  }
+
+  async getDatabaseStats(): Promise<DatabaseStats> {
+    return this.request<DatabaseStats>('GET', '/v1/data/stats');
+  }
+
+  async vacuumDatabase(): Promise<MaintenanceResult> {
+    return this.request<MaintenanceResult>('POST', '/v1/data/vacuum');
+  }
+
+  async integrityCheck(): Promise<MaintenanceResult> {
+    return this.request<MaintenanceResult>('POST', '/v1/data/integrity');
   }
 
   // Prototype-only helpers: meaningless against a real network.

@@ -52,7 +52,7 @@ export const Network: React.FC = () => {
         </div>
 
         {/* View mode toggle */}
-        <div className="flex items-center gap-1 bg-neutral-100 dark:bg-neutral-800 p-1 rounded border border-neutral-200 dark:border-neutral-750">
+        <div className="flex items-center gap-1 bg-neutral-100 dark:bg-neutral-800 p-1 rounded border border-neutral-200 dark:border-neutral-700">
           <button
             onClick={() => setSelectedSubnetTab('topology')}
             className={`px-3 py-1 text-xs font-medium rounded transition-colors ${
@@ -88,7 +88,7 @@ export const Network: React.FC = () => {
 
       {/* Network Specs Cards (Section 17) */}
       <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3 text-xs">
-        <div className="bg-white dark:bg-neutral-850 border border-neutral-200 dark:border-neutral-800 rounded-md p-3">
+        <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-md p-3 transition-colors">
           <div className="text-[10px] uppercase font-semibold text-neutral-400 mb-0.5">Interface</div>
           <div className="font-semibold text-neutral-900 dark:text-neutral-100 flex items-center gap-1.5">
             <Wifi className="w-3.5 h-3.5 text-emerald-500" />
@@ -97,7 +97,7 @@ export const Network: React.FC = () => {
           <div className="text-[11px] text-neutral-500">{networkInfo?.ssid}</div>
         </div>
 
-        <div className="bg-white dark:bg-neutral-850 border border-neutral-200 dark:border-neutral-800 rounded-md p-3">
+        <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-md p-3 transition-colors">
           <div className="text-[10px] uppercase font-semibold text-neutral-400 mb-0.5">Local Host IP</div>
           <div className="font-mono font-semibold text-neutral-900 dark:text-neutral-100 tabular-nums">
             {networkInfo?.localIp}
@@ -105,7 +105,7 @@ export const Network: React.FC = () => {
           <div className="text-[11px] text-neutral-500 font-mono">This device</div>
         </div>
 
-        <div className="bg-white dark:bg-neutral-850 border border-neutral-200 dark:border-neutral-800 rounded-md p-3">
+        <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-md p-3 transition-colors">
           <div className="text-[10px] uppercase font-semibold text-neutral-400 mb-0.5">Gateway Router</div>
           <div className="font-mono font-semibold text-neutral-900 dark:text-neutral-100 tabular-nums">
             {networkInfo?.gateway}
@@ -113,7 +113,7 @@ export const Network: React.FC = () => {
           <div className="text-[11px] text-neutral-500">router.local</div>
         </div>
 
-        <div className="bg-white dark:bg-neutral-850 border border-neutral-200 dark:border-neutral-800 rounded-md p-3">
+        <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-md p-3 transition-colors">
           <div className="text-[10px] uppercase font-semibold text-neutral-400 mb-0.5">Subnet CIDR</div>
           <div className="font-mono font-semibold text-neutral-900 dark:text-neutral-100 tabular-nums">
             {networkInfo?.subnet}
@@ -121,7 +121,7 @@ export const Network: React.FC = () => {
           <div className="text-[11px] text-neutral-500 font-mono">255.255.255.0</div>
         </div>
 
-        <div className="bg-white dark:bg-neutral-850 border border-neutral-200 dark:border-neutral-800 rounded-md p-3">
+        <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-md p-3 transition-colors">
           <div className="text-[10px] uppercase font-semibold text-neutral-400 mb-0.5">DNS Servers</div>
           <div className="font-mono font-semibold text-neutral-900 dark:text-neutral-100 tabular-nums truncate">
             {networkInfo?.dns.join(', ')}
@@ -129,7 +129,7 @@ export const Network: React.FC = () => {
           <div className="text-[11px] text-neutral-500">Local + Cloudflare</div>
         </div>
 
-        <div className="bg-white dark:bg-neutral-850 border border-neutral-200 dark:border-neutral-800 rounded-md p-3">
+        <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-md p-3 transition-colors">
           <div className="text-[10px] uppercase font-semibold text-neutral-400 mb-0.5">Broadcast IP</div>
           <div className="font-mono font-semibold text-neutral-900 dark:text-neutral-100 tabular-nums">
             {networkInfo?.broadcast}
@@ -140,7 +140,7 @@ export const Network: React.FC = () => {
 
       {/* Main Tab Content */}
       {selectedSubnetTab === 'topology' && (
-        <div className="bg-white dark:bg-neutral-850 border border-neutral-200 dark:border-neutral-800 rounded-lg p-6 space-y-6 shadow-xs">
+        <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg p-6 space-y-6 shadow-xs transition-colors">
           <div className="flex items-center justify-between border-b border-neutral-100 dark:border-neutral-800 pb-3">
             <div>
               <h3 className="text-sm font-bold text-neutral-900 dark:text-neutral-100">
@@ -214,7 +214,7 @@ export const Network: React.FC = () => {
             <div className="w-full max-w-4xl">
               {/* Horizontal crossbar */}
               <div className="h-px bg-neutral-300 dark:bg-neutral-700 w-full mb-6 relative">
-                <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 px-2 bg-white dark:bg-neutral-850 text-[10px] font-mono text-neutral-400">
+                <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 px-2 bg-white dark:bg-neutral-900 text-[10px] font-mono text-neutral-400">
                   {networkInfo?.subnet || '192.168.1.0/24'} Broadcast Domain
                 </span>
               </div>
@@ -250,7 +250,7 @@ export const Network: React.FC = () => {
 
       {/* Network Interfaces Tab (Section 17) */}
       {selectedSubnetTab === 'interfaces' && (
-        <div className="bg-white dark:bg-neutral-850 border border-neutral-200 dark:border-neutral-800 rounded-lg p-5 space-y-4 shadow-xs">
+        <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg p-5 space-y-4 shadow-xs transition-colors">
           <div className="border-b border-neutral-100 dark:border-neutral-800 pb-2">
             <h3 className="text-sm font-bold text-neutral-900 dark:text-neutral-100">
               Host Network Adapters & Interfaces
@@ -335,7 +335,7 @@ export const Network: React.FC = () => {
 
       {/* Subnet Allocation Grid */}
       {selectedSubnetTab === 'allocation' && (
-        <div className="bg-white dark:bg-neutral-850 border border-neutral-200 dark:border-neutral-800 rounded-lg p-5 space-y-4 shadow-xs">
+        <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg p-5 space-y-4 shadow-xs transition-colors">
           <div className="border-b border-neutral-100 dark:border-neutral-800 pb-2">
             <h3 className="text-sm font-bold text-neutral-900 dark:text-neutral-100">
               IPv4 Subnet Address Space ({subnetPrefix}1 — {subnetPrefix}254)

@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useDeferredValue } from 'react';
 import { Device, DeviceType } from '../../types/device';
 import { DeviceStatusBadge } from './DeviceStatusBadge';
 import { DeviceTypeIcon } from './DeviceTypeIcon';
@@ -31,6 +31,7 @@ export const DeviceTable: React.FC<DeviceTableProps> = ({
   showControls = true
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
+  const deferredSearch = useDeferredValue(searchQuery);
   const [statusFilter, setStatusFilter] = useState<'all' | 'online' | 'offline' | 'new'>(initialFilter);
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [sortField, setSortField] = useState<SortField>('ip');
@@ -62,8 +63,8 @@ export const DeviceTable: React.FC<DeviceTableProps> = ({
     }
 
     // Search query (name, ip, mac, vendor, hostname)
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase().trim();
+    if (deferredSearch.trim()) {
+      const q = deferredSearch.toLowerCase().trim();
       result = result.filter(
         d =>
           d.name.toLowerCase().includes(q) ||
@@ -119,7 +120,7 @@ export const DeviceTable: React.FC<DeviceTableProps> = ({
     }
 
     return result;
-  }, [devices, statusFilter, typeFilter, searchQuery, sortField, sortAsc, limit]);
+  }, [devices, statusFilter, typeFilter, deferredSearch, sortField, sortAsc, limit]);
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -136,14 +137,14 @@ export const DeviceTable: React.FC<DeviceTableProps> = ({
       {showControls && (
         <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
           {/* Search box */}
-          <div className="relative flex-1 min-w-[200px] max-w-sm">
+          <div className="relative flex-1 min-w-50 max-w-sm">
             <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-neutral-400" />
             <input
               type="text"
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               placeholder="Search devices by IP, name, MAC, vendor..."
-              className="w-full bg-white dark:bg-neutral-800 text-xs text-neutral-900 dark:text-neutral-100 pl-8 pr-7 py-1.5 rounded border border-neutral-300 dark:border-neutral-700 focus:outline-hidden focus:border-neutral-500 placeholder:text-neutral-400"
+              className="w-full bg-white dark:bg-neutral-800 text-xs text-neutral-900 dark:text-neutral-100 pl-8 pr-7 py-1.5 rounded border border-neutral-300 dark:border-neutral-700 focus:outline-hidden focus:border-neutral-500 placeholder:text-neutral-400 transition-colors"
             />
             {searchQuery && (
               <button
@@ -156,7 +157,7 @@ export const DeviceTable: React.FC<DeviceTableProps> = ({
           </div>
 
           {/* Status Tabs (Interactive filter buttons) */}
-          <div className="flex items-center gap-1 bg-neutral-100 dark:bg-neutral-800 p-1 rounded border border-neutral-200 dark:border-neutral-750">
+          <div className="flex items-center gap-1 bg-neutral-100 dark:bg-neutral-800 p-1 rounded border border-neutral-200 dark:border-neutral-700">
             {(['all', 'online', 'offline', 'new'] as const).map(tab => (
               <button
                 key={tab}
@@ -197,7 +198,7 @@ export const DeviceTable: React.FC<DeviceTableProps> = ({
       )}
 
       {/* Device Table */}
-      <div className="border border-neutral-200 dark:border-neutral-800 rounded-md overflow-hidden bg-white dark:bg-neutral-850 shadow-xs">
+      <div className="border border-neutral-200 dark:border-neutral-800 rounded-md overflow-hidden bg-white dark:bg-neutral-900 shadow-xs">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse text-xs">
             <thead>
@@ -308,7 +309,7 @@ export const DeviceTable: React.FC<DeviceTableProps> = ({
                       <div className="font-semibold text-neutral-900 dark:text-neutral-100 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
                         {device.customAlias || device.name}
                       </div>
-                      <div className="text-[11px] text-neutral-500 dark:text-neutral-400 font-mono truncate max-w-[180px]">
+                      <div className="text-[11px] text-neutral-500 dark:text-neutral-400 font-mono truncate max-w-45">
                         {device.hostname}
                       </div>
                     </td>
@@ -326,7 +327,7 @@ export const DeviceTable: React.FC<DeviceTableProps> = ({
                     )}
 
                     {/* Vendor */}
-                    <td className="py-2.5 px-3 text-neutral-600 dark:text-neutral-400 truncate max-w-[140px] hidden md:table-cell">
+                    <td className="py-2.5 px-3 text-neutral-600 dark:text-neutral-400 truncate max-w-35 hidden md:table-cell">
                       {device.vendor}
                     </td>
 

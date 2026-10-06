@@ -9,7 +9,9 @@ import {
   Settings,
   ShieldCheck,
   Wifi,
-  Radio
+  Radio,
+  Github,
+  ExternalLink
 } from 'lucide-react';
 
 export const Sidebar: React.FC = () => {
@@ -30,7 +32,7 @@ export const Sidebar: React.FC = () => {
     return `w-full flex items-center justify-between px-3 py-2 rounded-md text-xs font-medium transition-colors ${
       isActive
         ? 'bg-neutral-200/80 dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 font-semibold'
-        : 'text-neutral-600 dark:text-neutral-400 hover:bg-neutral-150 dark:hover:bg-neutral-850 hover:text-neutral-900 dark:hover:text-neutral-200'
+        : 'text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200/60 dark:hover:bg-neutral-800 hover:text-neutral-900 dark:hover:text-neutral-200'
     }`;
   };
 
@@ -40,9 +42,7 @@ export const Sidebar: React.FC = () => {
       <div className="p-3">
         {/* Logo Lockup */}
         <div className="flex items-center gap-2.5 px-2 py-2 mb-4">
-          <div className="w-6 h-6 rounded bg-neutral-900 dark:bg-neutral-100 flex items-center justify-center text-white dark:text-neutral-900 shadow-xs">
-            <Radio className="w-3.5 h-3.5 text-emerald-500 dark:text-emerald-600" />
-          </div>
+          <img src="/favicon.svg" alt="NETWATCH" className="w-6 h-6 rounded shadow-xs shrink-0" />
           <div>
             <div className="text-sm font-bold tracking-tight text-neutral-900 dark:text-neutral-100 leading-none">
               NETWATCH
@@ -149,7 +149,7 @@ export const Sidebar: React.FC = () => {
       {/* Bottom Area: Privacy Badge, Settings, Interface Status */}
       <div className="p-3 border-t border-neutral-200 dark:border-neutral-800 space-y-2">
         {/* Privacy Assurance Box */}
-        <div className="px-2.5 py-2 rounded bg-neutral-100 dark:bg-neutral-850 border border-neutral-200/80 dark:border-neutral-800 text-[11px]">
+        <div className="px-2.5 py-2 rounded bg-neutral-100 dark:bg-neutral-800/70 border border-neutral-200/80 dark:border-neutral-700/60 text-[11px]">
           <div className="flex items-center gap-1.5 text-neutral-800 dark:text-neutral-200 font-semibold mb-0.5">
             <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
             <span>Privacy Guaranteed</span>
@@ -177,6 +177,33 @@ export const Sidebar: React.FC = () => {
             <span className="truncate">{networkInfo?.interfaceName || 'Wi-Fi'}</span>
           </div>
           <span className="tabular-nums shrink-0">{networkInfo?.localIp || '192.168.1.24'}</span>
+        </div>
+
+        {/* Developer & Studio Identity Capsule */}
+        <div className="pt-2 border-t border-neutral-200/80 dark:border-neutral-800">
+          <div className="px-2.5 py-1.5 rounded-md bg-neutral-200/60 dark:bg-neutral-800/60 border border-neutral-300/50 dark:border-neutral-700/70 flex items-center justify-between">
+            <div className="flex items-center gap-1.5 min-w-0">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0" title="Engine Active" />
+              <div className="min-w-0">
+                <div className="text-[10px] font-bold text-neutral-800 dark:text-neutral-200 truncate leading-tight flex items-center gap-1">
+                  <span>NETWATCH</span>
+                  <span className="font-mono text-[9px] font-normal text-neutral-500 dark:text-neutral-400">v0.1.0</span>
+                </div>
+                <div className="text-[9px] text-neutral-500 dark:text-neutral-400 truncate leading-tight">
+                  By <span className="font-semibold text-neutral-700 dark:text-neutral-300">Alwkala</span>
+                </div>
+              </div>
+            </div>
+            <a
+              href="https://github.com/alwkala/NETWATCH"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="p-1 text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100 hover:bg-neutral-300/50 dark:hover:bg-neutral-700/50 rounded transition-colors"
+              title="View source on GitHub (alwkala/NETWATCH)"
+            >
+              <Github className="w-3.5 h-3.5" />
+            </a>
+          </div>
         </div>
       </div>
     </aside>

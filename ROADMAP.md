@@ -17,19 +17,19 @@ NETWATCH sweeps subnets in milliseconds, fingerprints hardware locally, and main
 ## Milestone Progress
 
 ```
-[M1: Windows Native]  ✅ Completed
+[M1: Windows Native]       ✅ Completed
         │
-[M2: Tests & CI]      🔄 In Progress (CI & Governance Done, Unit Tests Active)
+[M2: CI & Governance]      ✅ Completed (Multi-OS CI, Dependabot, Licensing, Threat Model)
         │
-[M3: Real Settings]   📅 Planned (Scheduled Auto-Scan, SQLite Persistence, Toast Notifications)
+[M3: Settings & Database]  🔄 In Progress (SQLite Settings, Auto-Scan, DB Maintenance & Stats)
         │
-[M4: Better Identity] 📅 Planned (mDNS, NetBIOS, SSDP, Confidence Scores)
+[M4: Better Identity]      📅 Planned (mDNS, NetBIOS, SSDP, Confidence Scores)
         │
-[M5: Diagnostics]     📅 Planned (Traceroute, Reverse DNS, Latency History Charts)
+[M5: Diagnostics]          📅 Planned (Traceroute, Reverse DNS, Latency History Charts)
         │
-[M6: Data Lifecycle]  📅 Planned (JSON/CSV Export, DB Migrations, Retention)
+[M6: QA & Data Lifecycle]  📅 Planned (Comprehensive Unit/API Tests, Playwright E2E, Export/Backup)
         │
-[M7: Signed Release]  📅 Planned (MSI/NSIS Packaging, SignPath.io Authenticode Signing)
+[M7: Signed Release]       📅 Planned (MSI/NSIS Packaging, SignPath.io Authenticode Signing)
 ```
 
 ---
@@ -43,23 +43,27 @@ NETWATCH sweeps subnets in milliseconds, fingerprints hardware locally, and main
 
 ---
 
-### 🔄 Milestone 2: Tests, CI & Governance (In Progress)
-- [x] GitHub Actions CI with SHA-pinned actions and multi-OS matrix (Ubuntu & Windows).
-- [x] Dependabot automated dependency monitoring (`gomod`, `npm`, `github-actions`).
-- [x] Dual licensing (MIT & Apache 2.0) and community health files.
+### ✅ Milestone 2: CI, Security & Governance Baseline (Completed)
+- [x] GitHub Actions CI with SHA-pinned actions and multi-OS matrix (Ubuntu `-race` & Windows builds).
+- [x] Automated dependency monitoring and security patch alerts via Dependabot (`gomod`, `npm`, `github-actions`).
+- [x] Dual licensing (MIT & Apache 2.0) and comprehensive OSS community health files (`CODE_OF_CONDUCT`, `CONTRIBUTING`, `SECURITY`).
 - [x] Formal STRIDE Threat Model (`THREAT_MODEL.md`) and Incident Response Plan (`INCIDENT_RESPONSE.md`).
-- [ ] Unit test suite for `internal/store` (SQLite transactions and event pruning).
-- [ ] Unit test suite for `internal/api` (Bearer auth, Origin/Host blocking, SSE stream).
-- [ ] Unit tests for `internal/netenv` parsing helpers.
-- [ ] Playwright end-to-end smoke tests against `netwatchd` with `-demo` environment.
+- [x] Unit test suites for API security invariants (Bearer token, DNS-rebinding Host check, Origin isolation) and SQLite Store persistence/transactions.
+- [x] Cross-platform build fixes (`openfolder` separation and `frontend/dist/.gitkeep`) ensuring clean checkouts pass on Linux and Windows CI.
 
 ---
 
-### 📅 Milestone 3: Real Settings & Automation
-- [ ] Persist settings in SQLite (`GET /v1/settings`, `PUT /v1/settings`).
-- [ ] Scheduled background scan execution at configurable intervals.
-- [ ] Native Windows toast notifications for new device discovery, device offline, and network change.
-- [ ] System Tray integration: minimize-to-tray and start minimized on login.
+### 🔄 Milestone 3: Real Settings & Database Management (In Progress)
+- [ ] **Settings Persistence & Engine Binding**:
+  - [x] Persist user preferences in SQLite (`GET /v1/settings`, `PUT /v1/settings`) instead of transient frontend state.
+  - [ ] Scheduled background scan execution at configurable intervals (`1m`, `5m`, `15m`, `1h`, `manual`).
+  - [ ] Native Windows toast notifications for new device discovery, device offline, and network change.
+  - [ ] System Tray integration: minimize-to-tray and start-minimized on login via HKCU Run key.
+- [ ] **Database Inspection & Maintenance Panel**:
+  - [x] Real-time SQLite statistics card: live database file size, total inventoried devices, event counts, and WAL mode indicators.
+  - [x] Robust `Open Data Folder` integration with absolute path resolution (`%WINDIR%\explorer.exe` / fallback) and distinct error/success feedback states in UI.
+  - [x] Database health and maintenance operations: `PRAGMA integrity_check` and `VACUUM` (compact database).
+  - [ ] Safe event log pruning and retention policy.
 
 ---
 
@@ -80,10 +84,16 @@ NETWATCH sweeps subnets in milliseconds, fingerprints hardware locally, and main
 
 ---
 
-### 📅 Milestone 6: Data Portability & Retention
-- [ ] Export device inventory and event history to JSON and CSV formats.
-- [ ] Configurable data retention policies (auto-purge events older than X days).
-- [ ] Versioned database schema migrations with automated backup/restore.
+### 📅 Milestone 6: Quality Assurance, Hardening & Data Portability
+- [ ] **Comprehensive Test Suites (Post-Feature Stability)**:
+  - Unit test suite for finalized `internal/store` (SQLite transactions, settings table, event pruning).
+  - Unit test suite for `internal/api` (Bearer auth, Origin/Host blocking, SSE stream).
+  - Unit tests for `internal/netenv` parsing helpers across platforms.
+  - Playwright end-to-end smoke test suite against `netwatchd` and production UI.
+- [ ] **Data Portability & Retention**:
+  - Export device inventory and event history to JSON and CSV formats.
+  - Configurable data retention policies (auto-purge events older than X days).
+  - Versioned database schema migrations with automated backup/restore verification.
 
 ---
 
@@ -91,3 +101,11 @@ NETWATCH sweeps subnets in milliseconds, fingerprints hardware locally, and main
 - [ ] Windows Installer (MSI / NSIS) and Winget package integration.
 - [ ] Free Authenticode code signing integration via **[SignPath.io](https://signpath.io/)** Foundation.
 - [ ] Cross-platform desktop release (Linux AppImage/DEB and macOS DMG).
+
+---
+
+### 🔮 Future Horizons (Post-v1.0)
+- [ ] **SNMP Support**: Query managed network switches, routers, and enterprise printers.
+- [ ] **Physical Topology Mapping**: Infer switch port connections from real LLDP and ARP correlation.
+- [ ] **Multi-Network Profiles**: Roaming between home, office, and lab subnets with distinct inventory profiles.
+- [ ] **Engine CLI Tools**: Standalone CLI commands (`netwatch discover`, `netwatch scan`, `netwatch export`) powered directly by the core engine.

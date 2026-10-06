@@ -119,7 +119,7 @@ export const DeviceDetails: React.FC = () => {
       </div>
 
       {/* Device Header */}
-      <div className="bg-white dark:bg-neutral-850 border border-neutral-200 dark:border-neutral-800 rounded-lg p-5 shadow-xs">
+      <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg p-5 shadow-xs transition-colors">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-start gap-3.5">
             <div className="w-11 h-11 rounded-md bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center text-neutral-700 dark:text-neutral-300 border border-neutral-200 dark:border-neutral-700">
@@ -286,7 +286,7 @@ export const DeviceDetails: React.FC = () => {
 
       {/* Summary KPI Cards (Section 14) */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="bg-white dark:bg-neutral-850 border border-neutral-200 dark:border-neutral-800 rounded-md p-3">
+        <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-md p-3 transition-colors">
           <div className="text-[10px] font-semibold text-neutral-500 uppercase tracking-wider mb-0.5">
             Status
           </div>
@@ -298,7 +298,7 @@ export const DeviceDetails: React.FC = () => {
           </div>
         </div>
 
-        <div className="bg-white dark:bg-neutral-850 border border-neutral-200 dark:border-neutral-800 rounded-md p-3">
+        <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-md p-3 transition-colors">
           <div className="text-[10px] font-semibold text-neutral-500 uppercase tracking-wider mb-0.5">
             Latency
           </div>
@@ -308,7 +308,7 @@ export const DeviceDetails: React.FC = () => {
           <div className="text-[10px] text-neutral-400 mt-0.5">ICMP round trip time</div>
         </div>
 
-        <div className="bg-white dark:bg-neutral-850 border border-neutral-200 dark:border-neutral-800 rounded-md p-3">
+        <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-md p-3 transition-colors">
           <div className="text-[10px] font-semibold text-neutral-500 uppercase tracking-wider mb-0.5">
             First Seen
           </div>
@@ -318,7 +318,7 @@ export const DeviceDetails: React.FC = () => {
           <div className="text-[10px] text-neutral-400 mt-0.5">Initial ARP registration</div>
         </div>
 
-        <div className="bg-white dark:bg-neutral-850 border border-neutral-200 dark:border-neutral-800 rounded-md p-3">
+        <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-md p-3 transition-colors">
           <div className="text-[10px] font-semibold text-neutral-500 uppercase tracking-wider mb-0.5">
             Last Seen
           </div>
@@ -332,7 +332,7 @@ export const DeviceDetails: React.FC = () => {
       {/* Two columns: Device Information & Detected Services */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Device Information Card */}
-        <div className="bg-white dark:bg-neutral-850 border border-neutral-200 dark:border-neutral-800 rounded-md p-4 space-y-3">
+        <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-md p-4 space-y-3 transition-colors">
           <div className="flex items-center gap-1.5 text-xs font-bold text-neutral-900 dark:text-neutral-100 border-b border-neutral-100 dark:border-neutral-800 pb-2">
             <Shield className="w-3.5 h-3.5 text-neutral-500" />
             <span>Network Identification</span>
@@ -395,7 +395,7 @@ export const DeviceDetails: React.FC = () => {
         </div>
 
         {/* Device Services (Section 15) */}
-        <div className="bg-white dark:bg-neutral-850 border border-neutral-200 dark:border-neutral-800 rounded-md p-4 space-y-3">
+        <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-md p-4 space-y-3 transition-colors">
           <div className="flex items-center justify-between border-b border-neutral-100 dark:border-neutral-800 pb-2">
             <div className="flex items-center gap-1.5 text-xs font-bold text-neutral-900 dark:text-neutral-100">
               <Layers className="w-3.5 h-3.5 text-neutral-500" />
@@ -460,7 +460,7 @@ export const DeviceDetails: React.FC = () => {
       </div>
 
       {/* Device History (Section 16) */}
-      <div className="bg-white dark:bg-neutral-850 border border-neutral-200 dark:border-neutral-800 rounded-md p-4 space-y-3">
+      <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-md p-4 space-y-3 transition-colors">
         <div className="flex items-center gap-1.5 text-xs font-bold text-neutral-900 dark:text-neutral-100 border-b border-neutral-100 dark:border-neutral-800 pb-2">
           <Clock className="w-3.5 h-3.5 text-neutral-500" />
           <span>Device History</span>

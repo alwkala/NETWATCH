@@ -47,15 +47,16 @@ func main() {
 	app := NewApp(token, logger)
 
 	err := wails.Run(&options.App{
-		Title:       "NETWATCH",
+		Title:       "NETWATCH — Local Network Intelligence",
 		Width:       1440,
 		Height:      900,
 		MinWidth:    1180,
 		MinHeight:   720,
-		AssetServer: &assetserver.Options{Assets: assets},
-		OnStartup:   app.startup,
-		OnShutdown:  func(ctx context.Context) { app.shutdown() },
-		Bind:        []interface{}{app},
+		AssetServer:      &assetserver.Options{Assets: assets},
+		BackgroundColour: &options.RGBA{R: 10, G: 10, B: 12, A: 255},
+		OnStartup:        app.startup,
+		OnShutdown:       func(ctx context.Context) { app.shutdown() },
+		Bind:             []interface{}{app},
 		Windows: &windows.Options{
 			WebviewIsTransparent: false,
 			Theme:                windows.SystemDefault,
