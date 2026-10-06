@@ -5,6 +5,20 @@ All notable changes to the NETWATCH project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+- **SQLite Engine Driver Upgrade**:
+  - Upgraded `github.com/ncruces/go-sqlite3` from `v0.30.0` to `v0.35.6` (resolves critical Windows WAL mode data corruption under heavy concurrency, Issue #404).
+- **Core Dependencies**:
+  - Upgraded `golang.org/x/sys` from `v0.37.0` to `v0.48.0`.
+  - Upgraded `lucide-react` from `0.546.0` to `0.577.0`.
+- **Automated Dependency Governance & Hardening**:
+  - Codified permanent ignore policies in `.github/dependabot.yml` preventing breaking major version updates for `github.com/wailsapp/wails/v2`, `motion`, and `@types/node`.
+  - Created repository label `type:dependency`.
+- **Version Manifest Synchronization**:
+  - Synchronized `var version` in `main.go` and `cmd/netwatchd/main.go` to match the official `0.1.0-alpha.1` release.
+
 ## [0.1.0-alpha.1] - 2026-10-06
  
 ### Added
@@ -38,8 +52,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Created structured issue forms in `.github/ISSUE_TEMPLATE/` (`bug_report.yml`, `feature_request.yml`, `config.yml`) and `.github/pull_request_template.md`.
   - Added `SECURITY.md` (vulnerability disclosure SLA & loopback privacy invariants) and `CONTRIBUTING.md` (local-first design rules).
   - Adopted Contributor Covenant v2.1 in `CODE_OF_CONDUCT.md`.
-  - Redesigned `README.md` with hybrid positioning: *Super Fast Network Scanner & Device Inventory*, hero value propositions, competitive matrix, visual architecture, and collapsible diagnostics.
-  - Updated repository topics and description on GitHub via `gh` CLI: *"Super Fast Network Scanner & Device Inventory. Instant LAN discovery, 100% offline, zero cloud."*
+  - Redesigned `README.md` with elevated positioning: *Local Network Intelligence & Device Inventory*, hero value propositions, architectural comparison matrix, visual architecture, and collapsible diagnostics.
+  - Updated repository topics and description on GitHub via `gh` CLI: *"Local Network Intelligence & Device Inventory. Instant LAN discovery, historical reconciliation, 100% offline, zero cloud."*
 
 ### Fixed
 - **Dark Mode Variant Resolution (Tailwind CSS v4)**:
@@ -53,7 +67,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed missing imports in `cmd/netwatchd/main.go` (`os/exec`, `syscall`) and `main.go` (`netwatch/internal/appdata`).
 - Cleaned up proxy mirror `replace` directives in `go.mod` for direct, clean module resolution on standard Windows environments.
 
-### Changed & Improved
+### Changed
 - **Strategic Product Re-Positioning & Narrative Elevation**:
   - Re-positioned product from ephemeral scanner to *Local Network Intelligence & Device Inventory* across README, ROADMAP, AGENTS handoff, and Settings About card.
   - Added dedicated architectural matrix contrasting ephemeral "fire-and-forget" scanners with persistent SQLite asset ledgers, historical timelines, and reconciliation state tracking.
@@ -105,3 +119,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Added transparent "Coming in M3" badges to staged system integration toggles in `Settings.tsx`.
   - Replaced competitor matrix in `README.md` with verifiable Design Principles & Architectural Guarantees.
   - Formatted all Go sources with `gofmt -w`.
+
+[Unreleased]: https://github.com/alwkala/NETWATCH/compare/v0.1.0-alpha.1...HEAD
+[0.1.0-alpha.1]: https://github.com/alwkala/NETWATCH/releases/tag/v0.1.0-alpha.1
+

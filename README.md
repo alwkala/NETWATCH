@@ -5,6 +5,7 @@
 ### Privacy-First Local-First Network Discovery, Inventory & Asset Intelligence
 
 [![CI](https://github.com/alwkala/NETWATCH/actions/workflows/ci.yml/badge.svg)](https://github.com/alwkala/NETWATCH/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/alwkala/NETWATCH?include_prereleases&color=blue&label=Release)](https://github.com/alwkala/NETWATCH/releases/tag/v0.1.0-alpha.1)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE-MIT)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-green.svg)](LICENSE-APACHE)
 [![Go Version](https://img.shields.io/badge/Go-1.24%2B-00ADD8.svg?logo=go)](go.mod)
@@ -91,7 +92,7 @@ React 19 UI  ──HTTP + SSE──▶  Go Core Engine (127.0.0.1:random, Bearer
 
 | Operating System | Architecture | Package Format | Status |
 |:---|:---|:---|:---|
-| **Windows 10 / 11** | `x64` | Standalone `.exe` (Installer in M7) | **Validated & Active** ([Build Instructions](#build-the-desktop-app-windows)) |
+| **Windows 10 / 11** | `x64` | Standalone `.exe` ([Download v0.1.0-alpha.1](https://github.com/alwkala/NETWATCH/releases/tag/v0.1.0-alpha.1)) | **Validated & Active** ([Build Instructions](#build-the-desktop-app-windows)) |
 | **Linux** | `amd64`, `arm64` | Daemon / CLI (`netwatchd`) | **Development / Headless** |
 | **macOS** | `Apple Silicon`, `Intel` | Wails `.app` / `.dmg` | **Roadmap (M7)** |
 

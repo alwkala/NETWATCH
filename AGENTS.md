@@ -71,19 +71,19 @@ go test -race ./...    &&   (cd frontend && npx tsc --noEmit)
 ```
 
 ## 5. Status and honest gaps
-Done: engine v0.1 (discovery, scan quick/full, diff/events, SQLite, ping, WoL, port probe), API, Wails host,
+Done: engine v0.1.0-alpha.1 (discovery, scan quick/full, diff/events, SQLite, ping, WoL, port probe, background auto-scan scheduler), API, Wails host,
 UI wired to the engine, security checks, simulated-network tests.
-**Verified on real Windows**: iphlpapi ARP (`GetIpNetTable`), unprivileged ICMP (`IcmpSendEcho`), adapter and DNS discovery (`GetAdaptersAddresses`), live LAN scan (`192.168.1.0/24`), rotating file logging (`%LOCALAPPDATA%\NetWatch\data\netwatch.log`), and standalone GUI build (`build/bin/netwatch.exe`).
-**Governance & CI/CD live**: GitHub Actions CI with SHA-pinned actions (`.github/workflows/ci.yml`), Dependabot, dual licensing (`LICENSE-MIT` and `LICENSE-APACHE`), formal STRIDE model (`THREAT_MODEL.md`), incident response playbook (`INCIDENT_RESPONSE.md`), public roadmap (`ROADMAP.md`), and comprehensive unit test suites for `internal/api` and `internal/store`.
-Known gaps: SSID (UI falls back to interface name), mDNS/NetBIOS/SSDP names, DHCP info, scheduled auto-scan engine worker,
+**Verified on real Windows**: iphlpapi ARP (`GetIpNetTable`), unprivileged ICMP (`IcmpSendEcho`), adapter and DNS discovery (`GetAdaptersAddresses`), live LAN scan (`192.168.1.0/24`), rotating file logging (`%LOCALAPPDATA%\NetWatch\data\netwatch.log`), standalone GUI build (`build/bin/netwatch.exe`), and published release `v0.1.0-alpha.1`.
+**Governance & CI/CD live**: GitHub Actions CI with SHA-pinned actions (`.github/workflows/ci.yml`), GitHub Rulesets enforcing default branch (`main`) and tag (`v*`) protection with required CI checks and linear history, Dependabot grouped updates with strict supply-chain pinning, dual licensing (`LICENSE-MIT` and `LICENSE-APACHE`), formal STRIDE model (`THREAT_MODEL.md`), incident response playbook (`INCIDENT_RESPONSE.md`), public roadmap (`ROADMAP.md`), and comprehensive unit test suites for `internal/api` and `internal/store`.
+Known gaps: SSID (UI falls back to interface name), mDNS/NetBIOS/SSDP names, DHCP info,
 Windows toast notifications, tray / start minimized / launch at startup (HKCU Run key), Playwright smoke suite, installer/signing.
 
 ## 6. Roadmap (do in this order; one milestone per PR)
 *For the public, user-facing milestone tracker, see `ROADMAP.md`.*
 
 - [x] **M1 – Validate on Windows**: verified Go engine on real LAN, iphlpapi ARP & ICMP echo, adapter discovery, Open Data Folder wired, built standalone Windows executable (`build/bin/netwatch.exe`), and added rotating file logging (`netwatch.log`).
-- [x] **M2 – CI & Governance Baseline**: GitHub Actions CI (`go test -race` on Ubuntu, `go test` + `GOOS=windows go build` on Windows), frontend typecheck/build, unit tests for API security invariants (Bearer auth, Origin/Host check) and Store transactions/persistence, Dependabot, dual licensing, formal STRIDE threat model, and incident response playbook.
-- [ ] **M3 – Real Settings & Database Management (In Progress)**: persist settings in SQLite (`GET/PUT /v1/settings` - done); database inspection & maintenance panel (live DB size, stats, WAL status, VACUUM/integrity_check, robust Open Data Folder with absolute path resolution - done); scheduled auto-scan with the chosen interval; Windows toast notifications for new device / offline / network change; tray + start minimized + launch at startup (HKCU Run key).
+- [x] **M2 – CI & Governance Baseline**: GitHub Actions CI (`go test -race` on Ubuntu, `go test` + `GOOS=windows go build` on Windows), frontend typecheck/build, GitHub Rulesets enforcing branch & tag protection with strict CI checks, unit tests for API security invariants (Bearer auth, Origin/Host check) and Store transactions/persistence, Dependabot grouped updates, dual licensing, formal STRIDE threat model, and incident response playbook.
+- [ ] **M3 – Real Settings & Database Management (In Progress)**: persist settings in SQLite (`GET/PUT /v1/settings` - done); database inspection & maintenance panel (live DB size, stats, WAL status, VACUUM/integrity_check, robust Open Data Folder with absolute path resolution - done); scheduled auto-scan engine worker with configurable intervals (`1m`, `5m`, `15m`, `1h`, `manual` - done); Windows toast notifications for new device / offline / network change; tray + start minimized + launch at startup (HKCU Run key).
 - [ ] **M4 – Better Identity**: mDNS, NetBIOS, SSDP/UPnP, DHCP lease info; SSID via WLAN API; improved classification with confidence
 and an explicit "Unknown" fallback; user-editable device type; full OUI refresh script (offline file, no runtime download).
 - [ ] **M5 – Diagnostics**: traceroute, DNS lookup/reverse, latency history charts per device, gateway/DNS/internet health from real probes only.
