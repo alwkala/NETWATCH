@@ -215,6 +215,7 @@ func (e *Engine) NetworkInfo(ctx context.Context) (model.NetworkInfo, error) {
 	if err != nil {
 		return out, err
 	}
+	out.IsPublicNetwork = in.IsPublicNetwork
 	act, hasActive := in.Active()
 	for _, d := range in.DNS {
 		out.DNS = append(out.DNS, d.String())

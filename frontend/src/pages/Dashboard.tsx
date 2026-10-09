@@ -1,5 +1,6 @@
 import React from 'react';
 import { useNetwork } from '../context/NetworkContext';
+import { useI18n } from '../context/I18nContext';
 import { MetricCard } from '../components/ui/MetricCard';
 import { DeviceTable } from '../components/devices/DeviceTable';
 import { DashboardLoadingSkeleton } from '../components/ui/LoadingSkeleton';
@@ -8,6 +9,7 @@ import {
   RotateCw,
   Radar,
   ArrowRight,
+  ArrowLeft,
   Activity,
   PlusCircle,
   Radio,
@@ -29,6 +31,7 @@ export const Dashboard: React.FC = () => {
     error,
     clearError
   } = useNetwork();
+  const { t, isRTL } = useI18n();
 
   if (isLoading) {
     return <DashboardLoadingSkeleton />;
@@ -55,10 +58,10 @@ export const Dashboard: React.FC = () => {
           <Radio className="w-8 h-8" />
         </div>
         <h2 className="text-xl font-bold text-neutral-900 dark:text-neutral-100 mb-2">
-          No devices discovered
+          {t('devices.emptyTitle')}
         </h2>
         <p className="text-xs text-neutral-500 dark:text-neutral-400 max-w-md mb-6 leading-relaxed">
-          Run a network scan to discover all active devices connected to your local network ({networkInfo?.subnet || '192.168.1.0/24'}).
+          {t('devices.scanPrompt')} ({networkInfo?.subnet || '192.168.1.0/24'})
         </p>
         <button
           onClick={() => startScan('quick')}
@@ -68,12 +71,12 @@ export const Dashboard: React.FC = () => {
           {isScanning ? (
             <>
               <RotateCw className="w-4 h-4 animate-spin" />
-              <span>Scanning... {scanProgress.progress}%</span>
+              <span>{t('common.scanning')} {scanProgress.progress}%</span>
             </>
           ) : (
             <>
               <Radar className="w-4 h-4 text-emerald-500" />
-              <span>Scan Network</span>
+              <span>{t('dashboard.startScan')}</span>
             </>
           )}
         </button>
@@ -83,26 +86,26 @@ export const Dashboard: React.FC = () => {
 
   return (
     <div className="p-6 space-y-6 max-w-7xl mx-auto">
-      {/* Header section (Section 8) */}
+      {/* Header section */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-1 border-b border-neutral-200/80 dark:border-neutral-800">
         <div>
           <div className="flex items-center gap-2.5 mb-1">
             <h2 className="text-xl font-bold tracking-tight text-neutral-900 dark:text-neutral-100">
-              {networkInfo?.networkName || 'Home Network'}
+              {networkInfo?.networkName || t('nav.network')}
             </h2>
-            <span className="font-mono text-xs px-2 py-0.5 rounded bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300 border border-neutral-200 dark:border-neutral-700">
+            <span className="font-mono text-xs px-2 py-0.5 rounded bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300 border border-neutral-200 dark:border-neutral-700" dir="ltr">
               {networkInfo?.subnet || '192.168.1.0/24'}
             </span>
           </div>
           <div className="flex items-center gap-2 text-xs text-neutral-500 dark:text-neutral-400">
             <span className="inline-flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-medium">
               <span className="w-2 h-2 rounded-full bg-emerald-500" />
-              Connected
+              {t('common.connected')}
             </span>
             <span>·</span>
-            <span>Gateway: <strong className="font-mono font-medium text-neutral-700 dark:text-neutral-300">{networkInfo?.gateway || '192.168.1.1'}</strong></span>
+            <span>{t('dashboard.gateway')}: <strong className="font-mono font-medium text-neutral-700 dark:text-neutral-300" dir="ltr">{networkInfo?.gateway || '192.168.1.1'}</strong></span>
             <span>·</span>
-            <span>Host: <strong className="font-mono font-medium text-neutral-700 dark:text-neutral-300">{networkInfo?.localIp || '192.168.1.24'}</strong></span>
+            <span>{t('dashboard.interface')}: <strong className="font-mono font-medium text-neutral-700 dark:text-neutral-300" dir="ltr">{networkInfo?.localIp || '192.168.1.24'}</strong></span>
           </div>
         </div>
       </div>
@@ -133,39 +136,39 @@ export const Dashboard: React.FC = () => {
         </div>
       )}
 
-      {/* KPI Cards (Section 8) */}
+      {/* KPI Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
         <MetricCard
-          label="Devices"
+          label={t('nav.devices')}
           value={devices.length}
-          subtext="discovered"
+          subtext={t('nav.totalDevices')}
           onClick={() => navigateTo('devices')}
         />
         <MetricCard
-          label="Online"
+          label={t('common.online')}
           value={onlineCount}
-          subtext="active now"
+          subtext={t('nav.activeNow')}
           highlight="online"
           onClick={() => navigateTo('devices')}
         />
         <MetricCard
-          label="Offline"
+          label={t('common.offline')}
           value={offlineCount}
-          subtext="dormant"
+          subtext={t('common.offline')}
           highlight="offline"
           onClick={() => navigateTo('devices')}
         />
         <MetricCard
-          label="New"
+          label={t('devices.newBadge')}
           value={newCount}
-          subtext={newCount > 0 ? 'review needed' : 'none'}
+          subtext={newCount > 0 ? t('deviceDetails.acknowledgeBtn') : t('common.none')}
           highlight="new"
           onClick={() => navigateTo('devices')}
         />
         <MetricCard
-          label="Avg Latency"
-          value={`${avgLatency} ms`}
-          subtext={`peak ${peakLatency} ms`}
+          label={t('dashboard.latencyAvg')}
+          value={`${avgLatency} ${t('common.ms')}`}
+          subtext={`peak ${peakLatency} ${t('common.ms')}`}
           highlight="accent"
         />
       </div>
@@ -177,18 +180,22 @@ export const Dashboard: React.FC = () => {
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-sm font-bold text-neutral-900 dark:text-neutral-100">
-                Devices
+                {t('nav.devices')}
               </h3>
               <p className="text-xs text-neutral-500 dark:text-neutral-400">
-                {devices.length} devices discovered on {networkInfo?.subnet || '192.168.1.0/24'}
+                {devices.length} {t('nav.totalDevices')} · <span dir="ltr">{networkInfo?.subnet || '192.168.1.0/24'}</span>
               </p>
             </div>
             <button
               onClick={() => navigateTo('devices')}
               className="text-xs font-semibold text-neutral-700 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-white flex items-center gap-1 group"
             >
-              <span>View all {devices.length} devices</span>
-              <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+              <span>{t('dashboard.viewAllDevices')} ({devices.length})</span>
+              {isRTL ? (
+                <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-0.5 transition-transform" />
+              ) : (
+                <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+              )}
             </button>
           </div>
 
@@ -204,22 +211,22 @@ export const Dashboard: React.FC = () => {
 
         {/* Right Column: Recent Activity & Network Health */}
         <div className="space-y-6">
-          {/* Network Health Widget (Section 11) */}
+          {/* Network Health Widget */}
           <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-md p-4 space-y-3 shadow-xs transition-colors">
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-semibold tracking-wider text-neutral-500 dark:text-neutral-400 uppercase">
-                Network Health
+                {t('dashboard.networkStatus')}
               </span>
               <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium">
-                Optimal
+                {t('common.online')}
               </span>
             </div>
 
             {/* Latency sparkline / distribution */}
             <div>
               <div className="flex items-center justify-between text-xs text-neutral-500 mb-1.5">
-                <span>ICMP Latency distribution</span>
-                <span className="font-mono text-neutral-800 dark:text-neutral-200">{currentLatency} ms</span>
+                <span>{t('dashboard.latencyAvg')}</span>
+                <span className="font-mono text-neutral-800 dark:text-neutral-200" dir="ltr">{currentLatency} {t('common.ms')}</span>
               </div>
               <div className="flex items-end gap-1 h-10 py-1 bg-neutral-50 dark:bg-neutral-800 rounded px-2">
                 {latencyHistory.map((val, idx) => {
@@ -239,37 +246,37 @@ export const Dashboard: React.FC = () => {
             {/* Metrics breakdown */}
             <div className="grid grid-cols-3 pt-2 border-t border-neutral-100 dark:border-neutral-800 text-xs">
               <div>
-                <div className="text-[10px] text-neutral-400 uppercase">Current</div>
-                <div className="font-mono font-semibold text-neutral-800 dark:text-neutral-200 tabular-nums">
-                  {currentLatency} ms
+                <div className="text-[10px] text-neutral-400 uppercase">{t('deviceDetails.kpiLatency')}</div>
+                <div className="font-mono font-semibold text-neutral-800 dark:text-neutral-200 tabular-nums" dir="ltr">
+                  {currentLatency} {t('common.ms')}
                 </div>
               </div>
               <div>
-                <div className="text-[10px] text-neutral-400 uppercase">Average</div>
-                <div className="font-mono font-semibold text-neutral-800 dark:text-neutral-200 tabular-nums">
-                  {avgLatency} ms
+                <div className="text-[10px] text-neutral-400 uppercase">{t('dashboard.latencyAvg')}</div>
+                <div className="font-mono font-semibold text-neutral-800 dark:text-neutral-200 tabular-nums" dir="ltr">
+                  {avgLatency} {t('common.ms')}
                 </div>
               </div>
               <div>
                 <div className="text-[10px] text-neutral-400 uppercase">Peak</div>
-                <div className="font-mono font-semibold text-neutral-800 dark:text-neutral-200 tabular-nums">
-                  {peakLatency} ms
+                <div className="font-mono font-semibold text-neutral-800 dark:text-neutral-200 tabular-nums" dir="ltr">
+                  {peakLatency} {t('common.ms')}
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Recent Events (Section 10) */}
+          {/* Recent Events */}
           <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-md p-4 space-y-3 shadow-xs transition-colors">
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-semibold tracking-wider text-neutral-500 dark:text-neutral-400 uppercase">
-                Recent Activity
+                {t('dashboard.recentActivity')}
               </span>
               <button
                 onClick={() => navigateTo('events')}
                 className="text-xs text-neutral-500 dark:text-neutral-400 hover:text-neutral-800 dark:hover:text-neutral-200"
               >
-                View all →
+                {t('common.all')} {isRTL ? '←' : '→'}
               </button>
             </div>
 

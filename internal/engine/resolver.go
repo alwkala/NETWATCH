@@ -80,7 +80,7 @@ func ResolveEvidence(
 
 	// Resolve each device bag: verify MACs, collect observed names, choose canonical name
 	for mac, bag := range bags {
-		var mdnsHost, nbnsHost, rdnsHost string
+		var mdnsHost, nbnsHost, wsdHost, rdnsHost string
 		seenNames := make(map[string]bool)
 
 		for _, item := range bag.Current {
@@ -147,6 +147,42 @@ func ResolveEvidence(
 						}
 					}
 				}
+			case model.SourceWSD:
+				if item.Key == "scopes" {
+					for _, scope := range strings.Fields(item.Value) {
+						if idx := strings.Index(scope, "/computer/"); idx != -1 {
+							compName := strings.TrimSpace(scope[idx+len("/computer/"):])
+							if compName != "" {
+								nameKey := fmt.Sprintf("WSD|%s", compName)
+								if !seenNames[nameKey] {
+									seenNames[nameKey] = true
+									bag.ObservedNames = append(bag.ObservedNames, model.ObservedName{
+										Source: model.SourceWSD,
+										Name:   compName,
+									})
+								}
+								if wsdHost == "" {
+									wsdHost = compName
+								}
+							}
+						} else if idx := strings.Index(scope, "/name/"); idx != -1 {
+							camName := strings.TrimSpace(scope[idx+len("/name/"):])
+							if camName != "" {
+								nameKey := fmt.Sprintf("WSD|%s", camName)
+								if !seenNames[nameKey] {
+									seenNames[nameKey] = true
+									bag.ObservedNames = append(bag.ObservedNames, model.ObservedName{
+										Source: model.SourceWSD,
+										Name:   camName,
+									})
+								}
+								if wsdHost == "" {
+									wsdHost = camName
+								}
+							}
+						}
+					}
+				}
 			case model.SourceDNS:
 				if item.Key == "hostname" {
 					h := strings.TrimSpace(item.Value)
@@ -172,6 +208,8 @@ func ResolveEvidence(
 			bag.CanonicalName = fingerprint.SanitizeLANString(mdnsHost)
 		} else if nbnsHost != "" {
 			bag.CanonicalName = fingerprint.SanitizeLANString(nbnsHost)
+		} else if wsdHost != "" {
+			bag.CanonicalName = fingerprint.SanitizeLANString(wsdHost)
 		} else if rdnsHost != "" {
 			bag.CanonicalName = fingerprint.SanitizeLANString(rdnsHost)
 		}

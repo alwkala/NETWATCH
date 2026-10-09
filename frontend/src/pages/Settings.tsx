@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNetwork } from '../context/NetworkContext';
 import { useTheme } from '../context/ThemeContext';
-import { AppSettings, DatabaseStats } from '../types/settings';
+import { useI18n } from '../context/I18nContext';
+import { AppSettings, DatabaseStats, Language } from '../types/settings';
 import {
   ShieldCheck,
   HardDrive,
@@ -19,12 +20,14 @@ import {
   Radio,
   Database,
   AlertCircle,
-  RotateCw
+  RotateCw,
+  Languages
 } from 'lucide-react';
 
 export const Settings: React.FC = () => {
   const { setPrototypeStatePreset, service, refresh } = useNetwork();
   const { theme, setTheme } = useTheme();
+  const { t, language, setLanguage } = useI18n();
 
   // General settings state
   const [launchAtStartup, setLaunchAtStartup] = useState(false);
@@ -170,72 +173,128 @@ export const Settings: React.FC = () => {
       {/* Header */}
       <div className="pb-3 border-b border-neutral-200 dark:border-neutral-800">
         <h2 className="text-lg font-bold text-neutral-900 dark:text-neutral-100">
-          Settings & Local Privacy
+          {t('settings.title')}
         </h2>
         <p className="text-xs text-neutral-500 dark:text-neutral-400">
-          Configure background discovery, notifications, and review local data storage.
+          {t('settings.subtitle')}
         </p>
       </div>
 
-      {/* PRIVACY SECTION (Mandatory trust-building element - Section 22) */}
+      {/* PRIVACY SECTION (Mandatory trust-building element) */}
       <div className="bg-white dark:bg-neutral-900 border-2 border-emerald-500/30 dark:border-emerald-500/40 rounded-lg p-5 space-y-4 shadow-xs transition-colors">
         <div className="flex items-center gap-2 text-sm font-bold text-neutral-900 dark:text-neutral-100">
           <ShieldCheck className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
-          <span>Local-First & Privacy Guarantee</span>
+          <span>{t('nav.privacyGuaranteed')}</span>
         </div>
 
         <p className="text-xs text-neutral-600 dark:text-neutral-300 leading-relaxed font-medium">
-          Your network data stays strictly on this computer. NetWatch operates 100% locally with zero cloud dependencies.
+          {t('settings.architectureGuarantees')}
         </p>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
           <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-400 font-medium">
             <Check className="w-4 h-4 shrink-0" />
-            <span>No account required</span>
+            <span>{t('settings.zeroEgressBadge')}</span>
           </div>
           <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-400 font-medium">
             <Check className="w-4 h-4 shrink-0" />
-            <span>No cloud storage or syncing</span>
-          </div>
-          <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-400 font-medium">
-            <Check className="w-4 h-4 shrink-0" />
-            <span>No analytics or crash reports</span>
-          </div>
-          <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-400 font-medium">
-            <Check className="w-4 h-4 shrink-0" />
-            <span>No background telemetry</span>
+            <span>{t('settings.airgapOUIBadge')}</span>
           </div>
           <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-400 font-medium sm:col-span-2">
             <Check className="w-4 h-4 shrink-0" />
-            <span>No external vendor or network database lookup</span>
+            <span>{t('nav.privacyNotice')}</span>
           </div>
         </div>
 
         <div className="pt-2 border-t border-neutral-100 dark:border-neutral-800 text-xs">
           <div className="text-[11px] text-neutral-400 mb-1 font-semibold uppercase tracking-wider">
-            Local SQLite Source of Truth
+            {t('settings.dbPath')}
           </div>
           <div className="p-2.5 rounded bg-neutral-100 dark:bg-neutral-900 font-mono text-[11px] text-neutral-700 dark:text-neutral-300 flex items-center justify-between break-all">
-            <span>{dbStats?.dbPath || '%LOCALAPPDATA%\\NetWatch\\data\\network.db'}</span>
-            <span className="text-[10px] text-neutral-400 shrink-0 ml-2">{dbStats?.walEnabled !== false ? 'WAL Mode' : 'Rollback Mode'}</span>
+            <span dir="ltr">{dbStats?.dbPath || '%LOCALAPPDATA%\\NetWatch\\data\\network.db'}</span>
+            <span className="text-[10px] text-neutral-400 shrink-0 ml-2">{dbStats?.walEnabled !== false ? t('settings.walActive') : 'Rollback Mode'}</span>
           </div>
         </div>
       </div>
 
-      {/* GENERAL (Section 22) */}
+      {/* LANGUAGE & LOCALIZATION */}
+      <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg p-5 space-y-4 shadow-xs transition-colors">
+        <div className="flex items-center justify-between">
+          <div className="text-xs font-bold text-neutral-900 dark:text-neutral-100 uppercase tracking-wider flex items-center gap-2">
+            <Languages className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+            <span>{t('settings.languageSection')}</span>
+          </div>
+          <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+            {language === 'ar' ? 'العربية (RTL)' : 'English (LTR)'}
+          </span>
+        </div>
+        <p className="text-xs text-neutral-500 dark:text-neutral-400">
+          {t('settings.languageDesc')}
+        </p>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+          <button
+            type="button"
+            onClick={() => {
+              setLanguage('en');
+              saveSetting('language', 'en');
+            }}
+            className={`p-3 rounded-lg border text-start transition-all flex items-start justify-between ${
+              language === 'en'
+                ? 'border-emerald-500 bg-emerald-50/40 dark:bg-emerald-950/20 shadow-xs'
+                : 'border-neutral-200 dark:border-neutral-800 hover:border-neutral-300 dark:hover:border-neutral-700'
+            }`}
+          >
+            <div>
+              <div className="font-semibold text-neutral-900 dark:text-neutral-100 flex items-center gap-2">
+                <span>{t('settings.langEnglish')}</span>
+              </div>
+              <div className="text-neutral-500 dark:text-neutral-400 text-[11px] mt-0.5">
+                Left-to-Right layout with Plus Jakarta Sans
+              </div>
+            </div>
+            {language === 'en' && <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setLanguage('ar');
+              saveSetting('language', 'ar');
+            }}
+            className={`p-3 rounded-lg border text-start transition-all flex items-start justify-between ${
+              language === 'ar'
+                ? 'border-emerald-500 bg-emerald-50/40 dark:bg-emerald-950/20 shadow-xs'
+                : 'border-neutral-200 dark:border-neutral-800 hover:border-neutral-300 dark:hover:border-neutral-700'
+            }`}
+          >
+            <div>
+              <div className="font-semibold text-neutral-900 dark:text-neutral-100 flex items-center gap-2">
+                <span>{t('settings.langArabic')}</span>
+              </div>
+              <div className="text-neutral-500 dark:text-neutral-400 text-[11px] mt-0.5">
+                تخطيط كامل من اليمين إلى اليسار مع دعم خطوط ويندوز العربية
+              </div>
+            </div>
+            {language === 'ar' && <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />}
+          </button>
+        </div>
+      </div>
+
+      {/* GENERAL */}
       <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg p-5 space-y-4 shadow-xs transition-colors">
         <div className="text-xs font-bold text-neutral-900 dark:text-neutral-100 uppercase tracking-wider">
-          General
+          {t('settings.startupSection')}
         </div>
 
         <div className="space-y-3 text-xs">
           <div className="flex items-center justify-between py-1">
             <div>
               <div className="font-semibold text-neutral-800 dark:text-neutral-200">
-                Launch at startup
+                {t('settings.launchAtStartup')}
               </div>
               <div className="text-neutral-400 text-[11px]">
-                Start NetWatch in system tray on Windows boot via HKCU Run registry
+                {t('settings.launchAtStartupDesc')}
               </div>
             </div>
             <button
@@ -258,35 +317,11 @@ export const Settings: React.FC = () => {
 
           <div className="flex items-center justify-between py-1 border-t border-neutral-100 dark:border-neutral-800">
             <div>
-              <div className="font-semibold text-neutral-800 dark:text-neutral-200 flex items-center gap-2">
-                <span>Minimize to tray</span>
-                <span className="text-[9px] uppercase font-mono px-1.5 py-0.2 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 font-semibold">Coming in M3</span>
-              </div>
-              <div className="text-neutral-400 text-[11px]">
-                Closing the window will minimize to system notification area
-              </div>
-            </div>
-            <button
-              onClick={() => setMinimizeToTray(!minimizeToTray)}
-              className={`w-11 h-6 rounded-full transition-colors relative p-0.5 ${
-                minimizeToTray ? 'bg-neutral-900 dark:bg-neutral-100' : 'bg-neutral-300 dark:bg-neutral-700'
-              }`}
-            >
-              <div
-                className={`w-5 h-5 rounded-full bg-white dark:bg-neutral-900 transition-transform ${
-                  minimizeToTray ? 'translate-x-5' : 'translate-x-0'
-                }`}
-              />
-            </button>
-          </div>
-
-          <div className="flex items-center justify-between py-1 border-t border-neutral-100 dark:border-neutral-800">
-            <div>
               <div className="font-semibold text-neutral-800 dark:text-neutral-200">
-                Start minimized
+                {t('settings.startMinimized')}
               </div>
               <div className="text-neutral-400 text-[11px]">
-                Do not show main window on initial launch
+                {t('settings.startMinimizedDesc')}
               </div>
             </div>
             <button
@@ -310,10 +345,10 @@ export const Settings: React.FC = () => {
           <div className="flex items-center justify-between py-1 border-t border-neutral-100 dark:border-neutral-800">
             <div>
               <div className="font-semibold text-neutral-800 dark:text-neutral-200">
-                Theme Appearance
+                {t('topbar.themeToggle')}
               </div>
               <div className="text-neutral-400 text-[11px]">
-                Select interface display mode
+                {theme === 'dark' ? 'Dark Mode' : 'Light Mode'}
               </div>
             </div>
             <div className="flex gap-1.5 bg-neutral-100 dark:bg-neutral-800/80 p-1 rounded-md border border-neutral-200 dark:border-neutral-700">
@@ -346,20 +381,20 @@ export const Settings: React.FC = () => {
         </div>
       </div>
 
-      {/* SCANNING SETTINGS (Section 22) */}
+      {/* SCANNING SETTINGS */}
       <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg p-5 space-y-4 shadow-xs transition-colors">
         <div className="text-xs font-bold text-neutral-900 dark:text-neutral-100 uppercase tracking-wider">
-          Scanning & Discovery
+          {t('settings.generalSection')}
         </div>
 
         <div className="space-y-3 text-xs">
           <div className="flex items-center justify-between py-1">
             <div>
               <div className="font-semibold text-neutral-800 dark:text-neutral-200">
-                Automatic discovery
+                {t('settings.autoDiscoveryLabel')}
               </div>
               <div className="text-neutral-400 text-[11px]">
-                Continuously listen to ARP broadcasts and passive NDP packets
+                {t('settings.autoDiscoveryDesc')}
               </div>
             </div>
             <button
@@ -383,10 +418,10 @@ export const Settings: React.FC = () => {
           <div className="flex items-center justify-between py-1 border-t border-neutral-100 dark:border-neutral-800">
             <div>
               <div className="font-semibold text-neutral-800 dark:text-neutral-200">
-                Scan interval
+                {t('settings.scanIntervalLabel')}
               </div>
               <div className="text-neutral-400 text-[11px]">
-                Periodic active ICMP sweep frequency
+                {t('settings.autoDiscoveryDesc')}
               </div>
             </div>
             <select
@@ -398,30 +433,30 @@ export const Settings: React.FC = () => {
               }}
               className="bg-white dark:bg-neutral-800 text-xs border border-neutral-300 dark:border-neutral-700 rounded px-2.5 py-1 text-neutral-800 dark:text-neutral-200"
             >
-              <option value="1m">1 minute</option>
-              <option value="5m">5 minutes (Default)</option>
-              <option value="15m">15 minutes</option>
-              <option value="1h">1 hour</option>
-              <option value="manual">Manual only (Disabled)</option>
+              <option value="1m">{t('settings.interval1m')}</option>
+              <option value="5m">{t('settings.interval5m')}</option>
+              <option value="15m">{t('settings.interval15m')}</option>
+              <option value="1h">{t('settings.interval1h')}</option>
+              <option value="manual">{t('settings.intervalManual')}</option>
             </select>
           </div>
         </div>
       </div>
 
-      {/* NOTIFICATIONS (Section 22) */}
+      {/* NOTIFICATIONS */}
       <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg p-5 space-y-4 shadow-xs transition-colors">
         <div className="text-xs font-bold text-neutral-900 dark:text-neutral-100 uppercase tracking-wider">
-          Windows Notifications
+          {t('settings.notificationsSection')}
         </div>
 
         <div className="space-y-3 text-xs">
           <div className="flex items-center justify-between py-1">
             <div>
               <div className="font-semibold text-neutral-800 dark:text-neutral-200">
-                New device detected
+                {t('settings.notifyNewDevice')}
               </div>
               <div className="text-neutral-400 text-[11px]">
-                Notify when an unrecognized MAC address connects to subnet
+                {t('settings.notifyNewDeviceDesc')}
               </div>
             </div>
             <button
@@ -445,10 +480,10 @@ export const Settings: React.FC = () => {
           <div className="flex items-center justify-between py-1 border-t border-neutral-100 dark:border-neutral-800">
             <div>
               <div className="font-semibold text-neutral-800 dark:text-neutral-200">
-                Device offline
+                {t('settings.notifyDeviceOffline')}
               </div>
               <div className="text-neutral-400 text-[11px]">
-                Notify when a monitored device drops off the network
+                {t('settings.notifyDeviceOfflineDesc')}
               </div>
             </div>
             <button
@@ -472,10 +507,10 @@ export const Settings: React.FC = () => {
           <div className="flex items-center justify-between py-1 border-t border-neutral-100 dark:border-neutral-800">
             <div>
               <div className="font-semibold text-neutral-800 dark:text-neutral-200">
-                Network changed
+                {t('settings.notifyNetworkChange')}
               </div>
               <div className="text-neutral-400 text-[11px]">
-                Notify when Wi-Fi SSID, default gateway, or IP lease changes
+                {t('settings.notifyNetworkChangeDesc')}
               </div>
             </div>
             <button
@@ -504,15 +539,15 @@ export const Settings: React.FC = () => {
           <div>
             <div className="text-xs font-bold text-neutral-900 dark:text-neutral-100 uppercase tracking-wider flex items-center gap-2">
               <Database className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-              <span>Database Inspection & Maintenance</span>
+              <span>{t('settings.dbSection')}</span>
             </div>
             <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">
-              Monitor local SQLite health, execute storage maintenance, and inspect data files.
+              {t('settings.subtitle')}
             </p>
           </div>
           {dbStats && (
             <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-              {dbStats.walEnabled ? 'WAL Mode Active' : 'Rollback Journal'}
+              {dbStats.walEnabled ? t('settings.walActive') : 'Rollback Journal'}
             </span>
           )}
         </div>
@@ -520,26 +555,26 @@ export const Settings: React.FC = () => {
         {/* Live DB Stats Card */}
         <div className="p-3 rounded bg-neutral-50 dark:bg-neutral-950/60 border border-neutral-200 dark:border-neutral-800 grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
           <div>
-            <span className="text-[10px] uppercase font-semibold text-neutral-400 block">Database Size</span>
-            <span className="font-mono font-medium text-neutral-800 dark:text-neutral-200">
+            <span className="text-[10px] uppercase font-semibold text-neutral-400 block">{t('settings.dbSize')}</span>
+            <span className="font-mono font-medium text-neutral-800 dark:text-neutral-200" dir="ltr">
               {formatBytes(dbStats?.fileSizeBytes ?? 61440)}
             </span>
           </div>
           <div>
-            <span className="text-[10px] uppercase font-semibold text-neutral-400 block">Devices Stored</span>
-            <span className="font-mono font-medium text-neutral-800 dark:text-neutral-200">
+            <span className="text-[10px] uppercase font-semibold text-neutral-400 block">{t('settings.deviceRecords')}</span>
+            <span className="font-mono font-medium text-neutral-800 dark:text-neutral-200" dir="ltr">
               {dbStats?.deviceCount ?? 0}
             </span>
           </div>
           <div>
-            <span className="text-[10px] uppercase font-semibold text-neutral-400 block">Event History</span>
-            <span className="font-mono font-medium text-neutral-800 dark:text-neutral-200">
+            <span className="text-[10px] uppercase font-semibold text-neutral-400 block">{t('settings.eventRecords')}</span>
+            <span className="font-mono font-medium text-neutral-800 dark:text-neutral-200" dir="ltr">
               {dbStats?.eventCount ?? 0}
             </span>
           </div>
           <div>
-            <span className="text-[10px] uppercase font-semibold text-neutral-400 block">Scan Records</span>
-            <span className="font-mono font-medium text-neutral-800 dark:text-neutral-200">
+            <span className="text-[10px] uppercase font-semibold text-neutral-400 block">{t('settings.scanRecords')}</span>
+            <span className="font-mono font-medium text-neutral-800 dark:text-neutral-200" dir="ltr">
               {dbStats?.scanCount ?? 0}
             </span>
           </div>
@@ -547,7 +582,7 @@ export const Settings: React.FC = () => {
 
         {/* Dynamic File Path */}
         <div className="p-2.5 rounded bg-neutral-100 dark:bg-neutral-900 font-mono text-[11px] text-neutral-700 dark:text-neutral-300 flex items-center justify-between break-all border border-neutral-200 dark:border-neutral-800">
-          <span className="truncate">{dbStats?.dbPath || '%LOCALAPPDATA%\\NetWatch\\data\\network.db'}</span>
+          <span className="truncate" dir="ltr">{dbStats?.dbPath || '%LOCALAPPDATA%\\NetWatch\\data\\network.db'}</span>
           <span className="text-[10px] text-emerald-600 dark:text-emerald-400 shrink-0 ml-2 font-sans font-medium">Local SQLite</span>
         </div>
 
@@ -575,7 +610,7 @@ export const Settings: React.FC = () => {
             className="px-3.5 py-1.5 bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-300 rounded text-xs font-medium border border-neutral-300 dark:border-neutral-700 transition-colors inline-flex items-center gap-1.5 disabled:opacity-50"
           >
             <FolderOpen className="w-3.5 h-3.5" />
-            <span>Open Data Folder</span>
+            <span>{t('settings.openFolderBtn')}</span>
           </button>
 
           <button
@@ -585,7 +620,7 @@ export const Settings: React.FC = () => {
             title="Defragment and shrink database file on disk"
           >
             <RotateCw className={`w-3.5 h-3.5 ${isBusy ? 'animate-spin' : ''}`} />
-            <span>Compact (VACUUM)</span>
+            <span>{t('settings.vacuumBtn')}</span>
           </button>
 
           <button
@@ -595,7 +630,7 @@ export const Settings: React.FC = () => {
             title="Execute SQLite PRAGMA integrity_check"
           >
             <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-            <span>Check Integrity</span>
+            <span>{t('settings.integrityBtn')}</span>
           </button>
 
           <button
@@ -605,7 +640,7 @@ export const Settings: React.FC = () => {
             title="Purge event history older than 30 days"
           >
             <RotateCw className="w-3.5 h-3.5" />
-            <span>Prune Events (&gt;30d)</span>
+            <span>{t('settings.pruneBtn')}</span>
           </button>
 
           <button
@@ -614,7 +649,7 @@ export const Settings: React.FC = () => {
             className="px-3.5 py-1.5 bg-neutral-100 dark:bg-neutral-800 hover:bg-red-50 dark:hover:bg-red-950/50 hover:text-red-600 dark:hover:text-red-400 text-neutral-700 dark:text-neutral-300 rounded text-xs font-medium border border-neutral-300 dark:border-neutral-700 transition-colors flex items-center gap-1.5 disabled:opacity-50"
           >
             <Trash2 className="w-3.5 h-3.5" />
-            <span>{service.isSimulated ? 'Reset Mock Data' : 'Clear History'}</span>
+            <span>{t('settings.clearDataBtn')}</span>
           </button>
         </div>
       </div>

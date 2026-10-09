@@ -74,6 +74,7 @@ type Device struct {
 	CustomAlias string          `json:"customAlias,omitempty"`
 	Hostname    string          `json:"hostname"`
 	IP          string          `json:"ip"`
+	IPv6        string          `json:"ipv6,omitempty"`
 	MAC         string          `json:"mac"`
 	Vendor      string          `json:"vendor"`
 	Type            string          `json:"type"`
@@ -136,6 +137,7 @@ type NetworkInfo struct {
 	DNS             []string               `json:"dns"`
 	LocalIP         string                 `json:"localIp"`
 	PublicIP        string                 `json:"publicIp,omitempty"`
+	IsPublicNetwork bool                   `json:"isPublicNetwork,omitempty"`
 	Broadcast       string                 `json:"broadcast"`
 	Netmask         string                 `json:"netmask"`
 	TotalAddresses  int                    `json:"totalAddresses"`
@@ -181,6 +183,7 @@ type Settings struct {
 	NotifyNetworkChange bool   `json:"notifyNetworkChange"`
 	LaunchAtStartup     bool   `json:"launchAtStartup"`
 	StartMinimized      bool   `json:"startMinimized"`
+	Language            string `json:"language,omitempty"`
 }
 
 // DefaultSettings returns safe initial preferences.
@@ -193,6 +196,7 @@ func DefaultSettings() Settings {
 		NotifyNetworkChange: true,
 		LaunchAtStartup:     false,
 		StartMinimized:      false,
+		Language:            "en",
 	}
 }
 

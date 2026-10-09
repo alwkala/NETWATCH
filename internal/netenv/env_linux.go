@@ -66,6 +66,9 @@ func (e *linuxEnv) Info(ctx context.Context) (Info, error) {
 				}
 			}
 		}
+		if err := sc.Err(); err != nil {
+			return info, err
+		}
 	}
 	return info, nil
 }
@@ -94,6 +97,9 @@ func defaultRoute() (map[string]netip.Addr, map[string]int) {
 		m, _ := strconv.Atoi(fs[6])
 		gw[fs[0]], metric[fs[0]] = netip.AddrFrom4(b), m
 	}
+	if err := sc.Err(); err != nil {
+		return gw, metric
+	}
 	return gw, metric
 }
 
@@ -113,6 +119,28 @@ func (e *linuxEnv) Neighbors(ctx context.Context) ([]Neighbor, error) {
 		}
 		if ip, err := netip.ParseAddr(fs[0]); err == nil {
 			out = append(out, Neighbor{IP: ip, MAC: fs[3]})
+		}
+	}
+	if err := sc.Err(); err != nil {
+		return nil, err
+	}
+	// Ingest IPv6 NDP neighbors via unprivileged `ip -6 neigh show`
+	if bin, err := exec.LookPath("ip"); err == nil {
+		cctx, cancel := context.WithTimeout(ctx, 2*time.Second)
+		defer cancel()
+		if out6, err := exec.CommandContext(cctx, bin, "-6", "neigh", "show").Output(); err == nil {
+			for _, line := range strings.Split(string(out6), "\n") {
+				fields := strings.Fields(line)
+				// Format: <ipv6> dev <iface> lladdr <mac> <STATE>
+				for i, f := range fields {
+					if f == "lladdr" && i+1 < len(fields) && i > 0 {
+						if ip, err := netip.ParseAddr(fields[0]); err == nil {
+							out = append(out, Neighbor{IP: ip, MAC: fields[i+1]})
+						}
+						break
+					}
+				}
+			}
 		}
 	}
 	return FilterNeighbors(out), nil

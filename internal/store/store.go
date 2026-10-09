@@ -192,6 +192,9 @@ var migrations = []string{
 
 	// v4: Custom Device Type override
 	`ALTER TABLE devices ADD COLUMN custom_type TEXT NOT NULL DEFAULT '';`,
+
+	// v5: IPv6 Address Support (M5)
+	`ALTER TABLE devices ADD COLUMN ipv6 TEXT NOT NULL DEFAULT '';`,
 }
 
 func (s *Store) migrate(ctx context.Context) error {
@@ -228,7 +231,7 @@ func nullInt(p *int) any {
 	return *p
 }
 
-const deviceCols = `id, net, mac, ip, hostname, vendor, type, name, custom_alias, notes, os, status, is_new, missed, latency_ms, first_seen, last_seen, is_randomized_mac, trust_status, merged_into, custom_type`
+const deviceCols = `id, net, mac, ip, ipv6, hostname, vendor, type, name, custom_alias, notes, os, status, is_new, missed, latency_ms, first_seen, last_seen, is_randomized_mac, trust_status, merged_into, custom_type`
 
 func scanKnown(sc interface{ Scan(...any) error }) (Known, error) {
 	var (
@@ -238,7 +241,7 @@ func scanKnown(sc interface{ Scan(...any) error }) (Known, error) {
 		lat        sql.NullInt64
 		first, lst int64
 	)
-	err := sc.Scan(&k.ID, &k.Net, &k.MAC, &k.IP, &k.Hostname, &k.Vendor, &k.Type, &k.Name, &k.CustomAlias,
+	err := sc.Scan(&k.ID, &k.Net, &k.MAC, &k.IP, &k.IPv6, &k.Hostname, &k.Vendor, &k.Type, &k.Name, &k.CustomAlias,
 		&k.Notes, &k.OS, &k.Status, &isNew, &k.Missed, &lat, &first, &lst, &isRand, &k.TrustStatus, &k.MergedInto, &k.CustomType)
 	if err != nil {
 		return k, err
@@ -440,13 +443,13 @@ func (s *Store) Commit(ctx context.Context, w Writeset) error {
 		if trust == "" {
 			trust = model.TrustUnknown
 		}
-		_, err := tx.ExecContext(ctx, `INSERT INTO devices (`+deviceCols+`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
-			ON CONFLICT(id) DO UPDATE SET mac=excluded.mac, ip=excluded.ip, hostname=excluded.hostname, vendor=excluded.vendor,
+		_, err := tx.ExecContext(ctx, `INSERT INTO devices (`+deviceCols+`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+			ON CONFLICT(id) DO UPDATE SET mac=excluded.mac, ip=excluded.ip, ipv6=excluded.ipv6, hostname=excluded.hostname, vendor=excluded.vendor,
 				type=excluded.type, name=excluded.name, os=excluded.os, status=excluded.status, is_new=excluded.is_new,
 				missed=excluded.missed, latency_ms=excluded.latency_ms, last_seen=excluded.last_seen,
 				is_randomized_mac=excluded.is_randomized_mac, trust_status=excluded.trust_status, merged_into=excluded.merged_into,
 				custom_type=excluded.custom_type`,
-			k.ID, k.Net, k.MAC, k.IP, k.Hostname, k.Vendor, k.Type, k.Name, k.CustomAlias, k.Notes, k.OS, k.Status,
+			k.ID, k.Net, k.MAC, k.IP, k.IPv6, k.Hostname, k.Vendor, k.Type, k.Name, k.CustomAlias, k.Notes, k.OS, k.Status,
 			isNew, k.Missed, nullInt(k.LatencyMs), ms(k.FirstSeen), ms(k.LastSeen), isRand, trust, k.MergedInto, k.CustomType)
 		if err != nil {
 			return fmt.Errorf("upsert %s: %w", k.ID, err)

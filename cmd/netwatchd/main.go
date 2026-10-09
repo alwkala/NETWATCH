@@ -22,7 +22,7 @@ import (
 	"netwatch/internal/store"
 )
 
-var version = "0.2.0-alpha.1"
+var version = "0.3.0-alpha.1"
 
 func main() {
 	var (
@@ -89,6 +89,7 @@ func run(log *slog.Logger, port int, token, dataDir, origins string) error {
 	srv.OpenDataFolder = func() error {
 		return appdata.OpenFolder(dataDir)
 	}
+	srv.OpenURL = appdata.OpenURL
 	ln, err := api.ListenLoopback(port)
 	if err != nil {
 		return err

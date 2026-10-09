@@ -15,12 +15,13 @@ import (
 
 // observation is what one scan learned about one host.
 type observation struct {
-	IP       netip.Addr
-	MAC      string
-	Hostname string
-	RTT      time.Duration
-	HasRTT   bool
-	Ports    []int // open TCP ports; meaningful only when PortScanned
+	IP          netip.Addr
+	IPv6        string
+	MAC         string
+	Hostname    string
+	RTT         time.Duration
+	HasRTT      bool
+	Ports       []int // open TCP ports; meaningful only when PortScanned
 	// PortScanned is true when this scan probed ports (Full scans).
 	PortScanned bool
 	IsSelf      bool
@@ -120,7 +121,7 @@ func reconcile(in reconcileIn) reconcileOut {
 		}
 
 		k := store.Known{Net: in.NetKey}
-		k.ID, k.MAC, k.IP = id, o.MAC, o.IP.String()
+		k.ID, k.MAC, k.IP, k.IPv6 = id, o.MAC, o.IP.String(), o.IPv6
 		k.Hostname, k.Vendor = o.Hostname, fingerprint.DisplayVendor(vendor, o.MAC)
 		k.Type, k.Name, k.Status = typ, name, model.StatusOnline
 		k.LatencyMs, k.LastSeen, k.Missed = lat, in.Now, 0
@@ -160,6 +161,9 @@ func reconcile(in reconcileIn) reconcileOut {
 			if k.Hostname == "" {
 				k.Hostname = prev.Hostname
 			}
+			if k.IPv6 == "" && prev.IPv6 != "" {
+				k.IPv6 = prev.IPv6
+			}
 			if prev.Status == model.StatusOffline {
 				ws.Events = append(ws.Events, model.NetworkEvent{
 					Timestamp: in.Now, Type: model.EvOnline, Title: "Device came online",
@@ -170,6 +174,10 @@ func reconcile(in reconcileIn) reconcileOut {
 			if prev.IP != k.IP {
 				ws.History = append(ws.History, store.HistoryRow{DeviceID: id, Time: in.Now, Type: model.HistIPChanged,
 					Desc: fmt.Sprintf("IP address changed %s → %s", prev.IP, k.IP)})
+			}
+			if prev.IPv6 != "" && k.IPv6 != "" && prev.IPv6 != k.IPv6 {
+				ws.History = append(ws.History, store.HistoryRow{DeviceID: id, Time: in.Now, Type: model.HistIPChanged,
+					Desc: fmt.Sprintf("IPv6 address changed %s → %s", prev.IPv6, k.IPv6)})
 			}
 		}
 		ws.Devices = append(ws.Devices, k)

@@ -50,6 +50,7 @@ func TestStore_DevicesAndReconciliation(t *testing.T) {
 			ID:        "dev-1",
 			MAC:       "00:11:22:33:44:55",
 			IP:        "192.168.1.50",
+			IPv6:      "fe80::1",
 			Hostname:  "test-pc",
 			Vendor:    "Intel",
 			Type:      "Computer",
@@ -100,7 +101,7 @@ func TestStore_DevicesAndReconciliation(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ListKnown failed: %v", err)
 	}
-	if len(known) != 1 || known[0].ID != "dev-1" {
+	if len(known) != 1 || known[0].ID != "dev-1" || known[0].IPv6 != "fe80::1" {
 		t.Fatalf("unexpected known devices: %+v", known)
 	}
 	if len(known[0].Services) != 1 || known[0].Services[0].Port != 80 {

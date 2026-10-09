@@ -2,13 +2,17 @@
 # Automates NETWATCH desktop release packaging, zip creation, and SHA-256 checksum generation.
 [CmdletBinding()]
 param(
-    [string]$Version = "0.2.0-alpha.1",
+    [string]$Version,
     [switch]$SkipFrontendBuild
 )
 
 $ErrorActionPreference = "Stop"
 $RepoRoot = (Get-Item $PSScriptRoot).Parent.FullName
 Set-Location $RepoRoot
+
+if (-not $Version) {
+    $Version = (Get-Content "$RepoRoot\frontend\package.json" | ConvertFrom-Json).version
+}
 
 Write-Host "==========================================================" -ForegroundColor Cyan
 Write-Host " NETWATCH Release Packager - v$Version" -ForegroundColor Cyan

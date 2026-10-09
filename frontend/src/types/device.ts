@@ -30,7 +30,7 @@ export interface DeviceEvent {
   description: string;
 }
 
-export type DiscoverySource = 'ARP' | 'ICMP' | 'TCP' | 'NBNS' | 'mDNS' | 'SSDP' | 'rDNS';
+export type DiscoverySource = 'ARP' | 'ICMP' | 'TCP' | 'NBNS' | 'mDNS' | 'SSDP' | 'rDNS' | 'NDP' | 'WSD';
 
 export interface DiscoveryEvidence {
   id?: number;
@@ -49,6 +49,7 @@ export interface Device {
   customAlias?: string;
   hostname: string;
   ip: string;
+  ipv6?: string;
   mac: string;
   vendor: string;
   type: DeviceType;

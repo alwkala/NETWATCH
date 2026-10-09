@@ -8,8 +8,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Full Internationalization (i18n) Engine & Arabic (RTL) Localization**:
+  - Implemented air-gapped, zero-external-egress i18n context provider (`I18nContext.tsx`) with instant language switching (`English` / `العربية`).
+  - Added comprehensive English (`frontend/src/locales/en.ts`) and Arabic (`frontend/src/locales/ar.ts`) translation dictionaries covering 100% of user interface strings (Navigation, Topbar, Dashboard, Devices table, Device Details, Network Architecture, Scanner, Event Audit Log, Settings, and Notifications).
+  - Bidirectional layout support (`dir="rtl"`, `lang="ar"`, `.rtl`) with native Windows typography fallback (`'Segoe UI'`, `'Tahoma'`) without external web fonts or CDN calls.
+  - Strict bidirectional text isolation (`dir="ltr"`) for technical networking identifiers (IPv4, IPv6, MAC, subnets, ping outputs, database paths, and latency metrics) preventing inverted numbers or punctuation.
+  - Quick language switcher in `TopBar.tsx` and persistent language selector card in `Settings.tsx`.
+  - Added `Language` field (`"en" | "ar"`) to `Settings` wire contract (`internal/model/model.go`) and validated persistence in SQLite `app_settings` via `PUT /v1/settings` with synchronization across sessions.
+- **RTL Typography & Sidebar Ergonomics Overhaul**:
+  - Bundled complete weight sets (400, 500, 600, 700) for `@fontsource/cairo` and `@fontsource/alexandria` with strict `--font-sans` inheritance in `index.css` across all text elements in RTL mode, eliminating browser fallbacks to traditional fonts.
+  - Corrected TopBar language dropdown positioning in RTL mode (`left-0`), preventing popup clipping beyond the application window edge.
+  - Reordered Sidebar bottom container: promoted Settings to the top of the lower shelf, followed by active Network Interface status, streamlined Privacy Assurance into a compact icon + title + subtitle line, and anchored the Developer capsule at bottom.
+  - Added native desktop sidebar collapse/expand toggle support with state persistence in `localStorage`.
+
+## [v0.3.0-alpha.1] - 2026-10-09
+
+### Added
+- **Unprivileged IPv6 Neighbor Discovery (NDP)**:
+  - Linked Windows native `GetIpNetTable2` from `iphlpapi.dll` with fallback to `GetIpNetTable`, reading IPv6 neighbor cache entries without administrator elevation.
+  - Added Linux neighbor ingestion via `ip -6 neigh show`.
+  - Added `ipv6` column to `devices` table via SQLite schema migration v5 (`internal/store/store.go`).
+  - Added IPv6 address tracking, drift detection, and 1-click copy card in the Device Details UI (`DeviceDetails.tsx`).
+- **Windows Public Network Firewall Warning Banner**:
+  - Added active connection profile detection (`NetworkCategory`) on Windows (`internal/netenv/env_windows.go`).
+  - Added dismissible warning banner in `Network.tsx` when connected to a Public network, informing users that multicast listeners (mDNS, SSDP, WSD) are suppressed by Windows Defender Firewall.
+- **WS-Discovery Protocol (`UDP:3702`)**:
+  - Implemented unprivileged multicast SOAP probe (`internal/netenv/wsd.go`) discovering Windows PCs, printers, and ONVIF cameras.
+  - Added XXE-safe, size-clamped XML parsing (`ParseWSDResponse`) with strict Zero-Fetch invariant on service URLs.
+  - Added `FuzzParseWSD` native fuzz test in `internal/netenv/fuzz_test.go`.
+  - Added WSD evidence panel in `DeviceDetails.tsx` displaying types, scopes, and endpoint identifiers.
+- **"Open Device Actions" & Host Bridge**:
+  - Added quick launch panel in `DeviceDetails.tsx` with smart port highlighting:
+    - Web UI (HTTP): opens `http://<ip>` in user's default browser via `POST /v1/system/open`.
+    - Web UI (HTTPS): opens `https://<ip>` in user's default browser via `POST /v1/system/open`.
+    - SSH Terminal: copies `ssh <ip>` with visual clipboard confirmation.
+    - Remote Desktop: copies `mstsc /v:<ip>` with visual clipboard confirmation.
+  - Added safe endpoint `POST /v1/system/open` guarded by `IsAllowedUnicastTarget` (preventing external egress and SSRF) and `OpenURL` OS abstraction (`rundll32 url.dll,FileProtocolHandler` on Windows, `xdg-open` / `open` on Unix).
 - **Native Multicast Parser Fuzz Testing**:
-  - Implemented Go native fuzz test suite (`internal/netenv/fuzz_test.go`) for `FuzzParseMDNS`, `FuzzParseSSDP`, and `FuzzParseNBNS` validating 600,000+ random and malformed inputs with zero panics.
+  - Implemented Go native fuzz test suite (`internal/netenv/fuzz_test.go`) for `FuzzParseMDNS`, `FuzzParseSSDP`, `FuzzParseNBNS`, and `FuzzParseWSD` validating 600,000+ random and malformed inputs with zero panics.
 - **Automated Release Packaging & SHA-256 Script**:
   - Added `scripts/build_release.ps1` automating Windows GUI subsystem desktop compilation, ZIP archiving, and `SHA256SUMS.txt` hash calculation.
 - **Server-Sent Events (SSE) Stream Token Verification**:
@@ -18,10 +54,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - **Zero-Egress Reverse DNS (rDNS) Hardening**:
   - Enforced `IsAllowedUnicastTarget` at the socket dialer level in `ReverseLookup` (`internal/netenv/netenv.go`), immediately blocking any PTR queries directed at external or public DNS resolvers (e.g. `8.8.8.8`) to eliminate DNS leakage and latency.
-- **Roadmap Governance & Sequencing**:
-  - Updated Milestone 5 with IPv6 Neighbor Discovery Protocol (NDP), Windows Public Network firewall alert, WS-Discovery protocol (`UDP:3702`), and "Open Device Actions" (HTTP/HTTPS/SSH/RDP).
-  - Reprioritized Milestone 6 to focus on Unsigned Binary Distribution, SHA-256 Checksums, and native installers before internationalization (Milestone 7).
-  - Updated `THREAT_MODEL.md` and `SECURITY.md` reflecting fuzz-tested multicast immunity, unsigned binary distribution, and SHA-256 verification.
 
 ## [v0.2.0-alpha.1] - 2026-10-06
 
@@ -214,7 +246,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Replaced competitor matrix in `README.md` with verifiable Design Principles & Architectural Guarantees.
   - Formatted all Go sources with `gofmt -w`.
 
-[Unreleased]: https://github.com/alwkala/NETWATCH/compare/v0.2.0-alpha.1...HEAD
+[Unreleased]: https://github.com/alwkala/NETWATCH/compare/v0.3.0-alpha.1...HEAD
+[v0.3.0-alpha.1]: https://github.com/alwkala/NETWATCH/compare/v0.2.0-alpha.1...v0.3.0-alpha.1
 [v0.2.0-alpha.1]: https://github.com/alwkala/NETWATCH/compare/v0.1.0-alpha.1...v0.2.0-alpha.1
 [0.1.0-alpha.1]: https://github.com/alwkala/NETWATCH/releases/tag/v0.1.0-alpha.1
 

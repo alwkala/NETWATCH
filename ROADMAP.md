@@ -111,20 +111,20 @@ No feature or diagnostic tool enters NETWATCH unless it passes three architectur
 
 ---
 
-### 📅 Milestone 5: Watchdog, Enhanced Discovery & Device Actions
-- [ ] **IPv6 Neighbor Discovery Protocol (NDP)**:
-  - [ ] Unprivileged IPv6 neighbor table ingestion via `GetIpNetTable2` on Windows (`iphlpapi.dll`) and `/proc/net/ipv6_route` on Linux.
-  - [ ] Correlate IPv6 Link-Local (`fe80::`) and SLAAC/DHCPv6 global addresses with existing MAC device ledger entries.
-- [ ] **Windows Public Network Firewall Suppression Alert**:
-  - [ ] Auto-detect active network profile category (Public vs Private) via network adapter properties.
-  - [ ] Non-intrusive UI warning banner when connected to a "Public" profile: *"⚠️ Current network is Public. Windows Firewall may suppress mDNS/SSDP discovery responses. Switch to Private for full device visibility."*
-- [ ] **WS-Discovery Protocol (WSD)**:
-  - [ ] Multicast probe over SOAP/UDP port 3702 (`239.255.255.250:3702`).
-  - [ ] Discover Windows PCs, network printers, and ONVIF IP security cameras that ignore standard SSDP/mDNS.
-- [ ] **"Open Device" Quick Actions in UI**:
-  - [ ] Instant action buttons in Device Details:
-    - `Open Web UI (HTTP :80)` and `Open Web UI (HTTPS :443)` launching default system browser.
-    - `Connect SSH (:22)` and `Connect RDP (:3389)`.
+### 📅 Milestone 5: Watchdog, Enhanced Discovery & Device Actions (In Progress)
+- [x] **IPv6 Neighbor Discovery Protocol (NDP)**:
+  - [x] Unprivileged IPv6 neighbor table ingestion via `GetIpNetTable2` on Windows (`iphlpapi.dll`) and `ip -6 neigh show` on Linux.
+  - [x] Correlate IPv6 Link-Local (`fe80::`) and SLAAC/DHCPv6 global addresses with existing MAC device ledger entries (`ipv6` column, drift tracking, 1-click copy card).
+- [x] **Windows Public Network Firewall Suppression Alert**:
+  - [x] Auto-detect active network profile category (Public vs Private) via network adapter properties (`NetworkCategory`).
+  - [x] Non-intrusive UI warning banner when connected to a "Public" profile: *"⚠️ Windows Public Network Profile Detected. Windows Defender Firewall may suppress mDNS/SSDP/WSD discovery responses. Switch to Private for full device visibility."*
+- [x] **WS-Discovery Protocol (WSD)**:
+  - [x] Multicast probe over SOAP/UDP port 3702 (`239.255.255.250:3702`).
+  - [x] Discover Windows PCs, network printers, and ONVIF IP security cameras that ignore standard SSDP/mDNS, with strict Zero-Fetch on service URLs.
+- [x] **"Open Device" Quick Actions in UI**:
+  - [x] Instant action buttons in Device Details:
+    - `Open Web UI (HTTP :80)` and `Open Web UI (HTTPS :443)` launching default system browser via `POST /v1/system/open`.
+    - `Connect SSH (:22)` and `Connect RDP (:3389)` with smart port highlighting and clipboard commands.
     - Direct `Ping` and `Wake-on-LAN` quick triggers.
 - [ ] **Network Watchdog & Anomaly Detection**:
   - [ ] ARP Conflict / Duplicate IP detection: trigger `ip_conflict` alert when multiple distinct MACs claim the same IP within the flap window.
@@ -154,17 +154,16 @@ No feature or diagnostic tool enters NETWATCH unless it passes three architectur
 
 ### 📅 Milestone 7: Internationalization (i18n), Diff Reports & Public v1.0
 - [ ] **Internationalization (i18n) & Multi-Language Architecture**:
-  - [ ] Lightweight, air-gapped i18n engine with zero external network requests and fully bundled local translation files.
-  - [ ] Bundled 7 core locale translation files:
-    - English (`en` — default fallback)
-    - Arabic (`ar` — native RTL layout direction, Arabic typography, and bidi-hardened strings)
+  - [x] Lightweight, air-gapped i18n engine (`I18nContext.tsx`) with zero external network requests and bundled offline translations.
+  - [x] Fully localized English (`en`) and domain-accurate Arabic (`ar`) with native RTL layout direction, Windows typography fallback, and bidi-hardened strings.
+  - [x] Extensible locale dictionaries (`frontend/src/locales/`) with strictly typed translation keys and automatic fallback to `en`.
+  - [x] Persistent user language preference stored in SQLite settings (`GET/PUT /v1/settings` -> `settings.language`) with immediate UI re-rendering and TopBar / Settings switchers.
+  - [ ] Additional locale translations:
     - German (`de`)
     - French (`fr`)
     - Spanish (`es`)
     - Japanese (`ja`)
     - Simplified Chinese (`zh-CN`)
-  - [ ] Extensible JSON locale registry (`frontend/src/locales/<lang>.json`) with strictly typed translation keys and automatic fallback to `en`.
-  - [ ] Persistent user language preference stored in SQLite settings (`GET/PUT /v1/settings` -> `settings.language`) with immediate UI re-rendering.
 - [ ] **Historical Diff & Digest Reports**:
   - [ ] Snapshot Diff Engine (`GET /v1/reports/diff?from=...&to=...`): calculate joined, departed, and IP-drifted devices between any two historical dates.
   - [ ] Scheduled local digest: weekly summary of new, active, and dormant devices.

@@ -1,5 +1,6 @@
 import React from 'react';
 import { useNetwork } from '../context/NetworkContext';
+import { useI18n } from '../context/I18nContext';
 import { DeviceTable } from '../components/devices/DeviceTable';
 import { TableLoadingSkeleton } from '../components/ui/LoadingSkeleton';
 import { ErrorState } from '../components/ui/ErrorState';
@@ -23,6 +24,7 @@ export const Devices: React.FC = () => {
     error,
     clearError
   } = useNetwork();
+  const { t } = useI18n();
 
   if (isLoading) {
     return <TableLoadingSkeleton />;
@@ -41,10 +43,10 @@ export const Devices: React.FC = () => {
       <div className="p-12 text-center max-w-md mx-auto min-h-[50vh] flex flex-col items-center justify-center">
         <Radio className="w-10 h-10 text-neutral-400 mb-3" />
         <h3 className="text-base font-bold text-neutral-900 dark:text-neutral-100 mb-1">
-          No devices discovered
+          {t('devices.emptyTitle')}
         </h3>
         <p className="text-xs text-neutral-500 dark:text-neutral-400 mb-4">
-          Run a network scan to discover devices connected to your local network.
+          {t('devices.scanPrompt')}
         </p>
         <button
           onClick={() => startScan('quick')}
@@ -52,7 +54,7 @@ export const Devices: React.FC = () => {
           className="px-4 py-2 bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 text-xs font-semibold rounded flex items-center gap-2 hover:bg-neutral-800 dark:hover:bg-white transition-colors"
         >
           <Radar className="w-3.5 h-3.5 text-emerald-500" />
-          <span>Scan</span>
+          <span>{t('common.scan')}</span>
         </button>
       </div>
     );
@@ -65,14 +67,14 @@ export const Devices: React.FC = () => {
         <div>
           <div className="flex items-center gap-2">
             <h2 className="text-lg font-bold text-neutral-900 dark:text-neutral-100">
-              Devices Inventory
+              {t('devices.title')}
             </h2>
             <span className="text-xs font-mono text-neutral-500 px-2 py-0.5 bg-neutral-100 dark:bg-neutral-800 rounded">
-              {devices.length} devices
+              {devices.length} {t('nav.devices')}
             </span>
           </div>
           <p className="text-xs text-neutral-500 dark:text-neutral-400">
-            {onlineCount} online · {offlineCount} offline · {newCount} new on {networkInfo?.subnet || '192.168.1.0/24'}
+            {onlineCount} {t('common.online')} · {offlineCount} {t('common.offline')} · {newCount} {t('devices.newBadge')} · <span dir="ltr">{networkInfo?.subnet || '192.168.1.0/24'}</span>
           </p>
         </div>
 

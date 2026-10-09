@@ -274,7 +274,8 @@ export class MockNetworkService implements NetworkService {
     notifyDeviceOffline: false,
     notifyNetworkChange: true,
     launchAtStartup: false,
-    startMinimized: false
+    startMinimized: false,
+    language: 'en'
   };
 
   public async getSettings(): Promise<AppSettings> {
@@ -327,6 +328,10 @@ export class MockNetworkService implements NetworkService {
 
   public async openDataFolder(): Promise<void> {
     // Simulated web environment
+  }
+
+  public async openURL(url: string): Promise<void> {
+    window.open(url, '_blank');
   }
 
   public async resetToDefault(): Promise<void> {

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNetwork } from '../context/NetworkContext';
+import { useI18n } from '../context/I18nContext';
 import { DeviceTypeIcon } from '../components/devices/DeviceTypeIcon';
 import {
   Wifi,
@@ -10,20 +11,24 @@ import {
   XCircle,
   Network as NetworkIcon,
   Shield,
-  ArrowUpRight
+  ArrowUpRight,
+  AlertTriangle,
+  X
 } from 'lucide-react';
 
 export const Network: React.FC = () => {
   const { networkInfo, devices, selectDevice } = useNetwork();
+  const { t } = useI18n();
   // The allocation grid is drawn for the /24 containing this host.
   const subnetPrefix = (networkInfo?.localIp || '192.168.1.24').split('.').slice(0, 3).join('.') + '.';
   const [selectedSubnetTab, setSelectedSubnetTab] = useState<'topology' | 'interfaces' | 'allocation'>('topology');
+  const [dismissPublicWarning, setDismissPublicWarning] = useState(false);
 
   // Key devices for clean topology map
   const realRouter = devices.find(d => (networkInfo?.gateway && d.ip === networkInfo.gateway) || d.type === 'Router');
   const routerDevice = realRouter || {
     id: '',
-    name: 'Default Gateway (Router)',
+    name: t('network.routerNode'),
     ip: networkInfo?.gateway || '192.168.1.1',
     mac: '—',
     vendor: 'Gateway',
@@ -40,14 +45,14 @@ export const Network: React.FC = () => {
         <div>
           <div className="flex items-center gap-2">
             <h2 className="text-lg font-bold text-neutral-900 dark:text-neutral-100">
-              {networkInfo?.networkName || 'Home Network'}
+              {networkInfo?.networkName || t('network.title')}
             </h2>
             <span className="font-mono text-xs px-2 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 font-medium">
-              ● Connected
+              ● {t('common.connected')}
             </span>
           </div>
           <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">
-            Active interface: <strong className="text-neutral-700 dark:text-neutral-300">{networkInfo?.interfaceName}</strong> ({networkInfo?.ssid}) · Subnet: <strong className="font-mono">{networkInfo?.subnet}</strong>
+            {t('network.activeInterface')}: <strong className="text-neutral-700 dark:text-neutral-300">{networkInfo?.interfaceName}</strong> ({networkInfo?.ssid}) · Subnet: <strong className="font-mono" dir="ltr">{networkInfo?.subnet}</strong>
           </p>
         </div>
 
@@ -57,34 +62,66 @@ export const Network: React.FC = () => {
             onClick={() => setSelectedSubnetTab('topology')}
             className={`px-3 py-1 text-xs font-medium rounded transition-colors ${
               selectedSubnetTab === 'topology'
-                ? 'bg-white dark:bg-neutral-700 text-neutral-900 dark:text-neutral-100 shadow-xs'
+                ? 'bg-white dark:bg-neutral-700 text-neutral-900 dark:text-neutral-100 shadow-xs font-semibold'
                 : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-200'
             }`}
           >
-            Topology Map
+            {t('network.tabTopology')}
           </button>
           <button
             onClick={() => setSelectedSubnetTab('interfaces')}
             className={`px-3 py-1 text-xs font-medium rounded transition-colors ${
               selectedSubnetTab === 'interfaces'
-                ? 'bg-white dark:bg-neutral-700 text-neutral-900 dark:text-neutral-100 shadow-xs'
+                ? 'bg-white dark:bg-neutral-700 text-neutral-900 dark:text-neutral-100 shadow-xs font-semibold'
                 : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-200'
             }`}
           >
-            Network Interfaces
+            {t('network.tabInterfaces')}
           </button>
           <button
             onClick={() => setSelectedSubnetTab('allocation')}
             className={`px-3 py-1 text-xs font-medium rounded transition-colors ${
               selectedSubnetTab === 'allocation'
-                ? 'bg-white dark:bg-neutral-700 text-neutral-900 dark:text-neutral-100 shadow-xs'
+                ? 'bg-white dark:bg-neutral-700 text-neutral-900 dark:text-neutral-100 shadow-xs font-semibold'
                 : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-200'
             }`}
           >
-            Subnet Allocation
+            {t('network.tabAllocation')}
           </button>
         </div>
       </div>
+
+      {/* Public Network Firewall Warning Banner */}
+      {networkInfo?.isPublicNetwork && !dismissPublicWarning && (
+        <div className="bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 rounded-lg p-4 text-xs text-amber-900 dark:text-amber-200 flex items-start justify-between gap-3 shadow-xs">
+          <div className="flex items-start gap-3">
+            <div className="p-1.5 bg-amber-100 dark:bg-amber-900/60 rounded-md text-amber-700 dark:text-amber-400 shrink-0 mt-0.5">
+              <AlertTriangle className="w-4 h-4" />
+            </div>
+            <div className="space-y-1">
+              <div className="font-semibold text-amber-950 dark:text-amber-100 text-sm flex items-center gap-2">
+                <span>{t('network.publicWarningTitle')}</span>
+                <span className="text-[10px] uppercase font-mono px-1.5 py-0.5 rounded bg-amber-200/60 dark:bg-amber-900/80 text-amber-900 dark:text-amber-300 font-bold">
+                  {t('network.publicWarningMuted')}
+                </span>
+              </div>
+              <p className="text-amber-800 dark:text-amber-300/90 leading-relaxed">
+                {t('network.publicWarningDesc')}
+              </p>
+              <p className="text-amber-700 dark:text-amber-400/80 text-[11px]">
+                {t('network.publicWarningAction')}
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => setDismissPublicWarning(true)}
+            className="p-1 text-amber-600 dark:text-amber-400 hover:text-amber-900 dark:hover:text-amber-100 rounded hover:bg-amber-100 dark:hover:bg-amber-900/40 transition-colors shrink-0 cursor-pointer"
+            title={t('common.dismiss')}
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
 
       {/* Network Specs Cards (Section 17) */}
       <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3 text-xs">

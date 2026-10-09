@@ -24,7 +24,7 @@ import (
 //go:embed all:frontend/dist
 var assets embed.FS
 
-var version = "0.2.0-alpha.1"
+var version = "0.3.0-alpha.1"
 
 func main() {
 	var b [24]byte
@@ -57,10 +57,10 @@ func main() {
 
 	err := wails.Run(&options.App{
 		Title:            "NETWATCH — Local Network Intelligence",
-		Width:            1440,
-		Height:           900,
-		MinWidth:         1180,
-		MinHeight:        720,
+		Width:            1200,
+		Height:           740,
+		MinWidth:         1024,
+		MinHeight:        640,
 		StartHidden:      startHidden,
 		AssetServer:      &assetserver.Options{Assets: assets},
 		BackgroundColour: &options.RGBA{R: 10, G: 10, B: 12, A: 255},

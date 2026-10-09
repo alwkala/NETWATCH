@@ -1,3 +1,5 @@
+export type Language = 'en' | 'ar';
+
 export interface AppSettings {
   autoDiscovery: boolean;
   scanInterval: string; // '1m' | '5m' | '15m' | '1h' | 'manual'
@@ -6,6 +8,7 @@ export interface AppSettings {
   notifyNetworkChange: boolean;
   launchAtStartup: boolean;
   startMinimized: boolean;
+  language?: Language;
 }
 
 export interface DatabaseStats {

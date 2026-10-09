@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNetwork } from '../context/NetworkContext';
+import { useI18n } from '../context/I18nContext';
 import {
   Radar,
   RotateCw,
@@ -23,6 +24,7 @@ export const Scanner: React.FC = () => {
     navigateTo,
     selectDevice
   } = useNetwork();
+  const { t } = useI18n();
 
   const [scanType, setScanType] = useState<'quick' | 'full'>('quick');
 
@@ -37,14 +39,14 @@ export const Scanner: React.FC = () => {
         <div>
           <div className="flex items-center gap-2">
             <h2 className="text-lg font-bold text-neutral-900 dark:text-neutral-100">
-              Network Scanner
+              {t('scanner.title')}
             </h2>
-            <span className="font-mono text-xs px-2 py-0.5 rounded bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300 border border-neutral-200 dark:border-neutral-700">
+            <span className="font-mono text-xs px-2 py-0.5 rounded bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300 border border-neutral-200 dark:border-neutral-700" dir="ltr">
               {networkInfo?.subnet || '192.168.1.0/24'}
             </span>
           </div>
           <p className="text-xs text-neutral-500 dark:text-neutral-400">
-            Probe active subnet for connected devices, ARP registrations, and hostnames.
+            {t('scanner.subtitle')}
           </p>
         </div>
 
@@ -57,22 +59,22 @@ export const Scanner: React.FC = () => {
             {isScanning ? (
               <>
                 <RotateCw className="w-3.5 h-3.5 animate-spin" />
-                <span>Scanning Subnet...</span>
+                <span>{t('common.scanning')}</span>
               </>
             ) : (
               <>
                 <Radar className="w-3.5 h-3.5 text-emerald-500" />
-                <span>Scan Network</span>
+                <span>{t('scanner.startScanBtn')}</span>
               </>
             )}
           </button>
         </div>
       </div>
 
-      {/* Scan Options (Section 20) */}
+      {/* Scan Options */}
       <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg p-5 space-y-3 shadow-xs transition-colors">
         <div className="text-xs font-bold text-neutral-900 dark:text-neutral-100">
-          Discovery Mode
+          {t('devices.filterType')}
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -93,10 +95,10 @@ export const Scanner: React.FC = () => {
             />
             <div>
               <div className="font-bold text-neutral-900 dark:text-neutral-100">
-                Quick Discovery (Recommended)
+                {t('scanner.quickScanTitle')}
               </div>
               <div className="text-neutral-500 text-[11px] mt-0.5 leading-relaxed">
-                ARP cache query and ICMP echo sweep across /24 subnet. Fast response (~1.5s), minimal network traffic.
+                {t('scanner.quickScanDesc')}
               </div>
             </div>
           </label>
@@ -118,10 +120,10 @@ export const Scanner: React.FC = () => {
             />
             <div>
               <div className="font-bold text-neutral-900 dark:text-neutral-100">
-                Full Discovery & Inspection
+                {t('scanner.fullScanTitle')}
               </div>
               <div className="text-neutral-500 text-[11px] mt-0.5 leading-relaxed">
-                Deep fingerprinting, DNS reverse-lookups, mDNS Bonjour broadcast, and standard service checks.
+                {t('scanner.fullScanDesc')}
               </div>
             </div>
           </label>

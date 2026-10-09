@@ -40,6 +40,7 @@ func (a *App) GetConnection() Connection { return Connection{BaseURL: a.baseURL,
 
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
+	wruntime.WindowCenter(ctx)
 	if err := a.start(ctx); err != nil {
 		a.log.Error("engine failed to start", "err", err)
 	}
@@ -64,7 +65,7 @@ func (a *App) start(parent context.Context) error {
 		return fmt.Errorf("open database: %w", err)
 	}
 	a.st = st
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(parent)
 	a.cancel = cancel
 
 	eng := engine.New(engine.Options{Env: netenv.New(), Store: st, Logger: a.log})
@@ -74,6 +75,13 @@ func (a *App) start(parent context.Context) error {
 	srv := api.New(eng, api.Config{Token: a.token, Version: version, DBPath: appdata.DBPath(a.dataDir), Logger: a.log})
 	srv.OpenDataFolder = func() error {
 		return appdata.OpenFolder(a.dataDir)
+	}
+	srv.OpenURL = func(targetURL string) error {
+		if a.ctx != nil {
+			wruntime.BrowserOpenURL(a.ctx, targetURL)
+			return nil
+		}
+		return appdata.OpenURL(targetURL)
 	}
 	ln, err := api.ListenLoopback(0)
 	if err != nil {

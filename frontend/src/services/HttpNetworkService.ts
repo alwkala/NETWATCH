@@ -201,6 +201,10 @@ export class HttpNetworkService implements NetworkService {
     await this.request('POST', '/v1/data/open');
   }
 
+  async openURL(url: string): Promise<void> {
+    await this.request('POST', '/v1/system/open', { url });
+  }
+
   async getSettings(): Promise<AppSettings> {
     return this.request<AppSettings>('GET', '/v1/settings');
   }

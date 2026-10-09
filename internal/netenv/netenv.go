@@ -28,9 +28,10 @@ type Adapter struct {
 
 // Info is a snapshot of the machine's network configuration.
 type Info struct {
-	Adapters []Adapter
-	DNS      []netip.Addr
-	SSID     string
+	Adapters        []Adapter
+	DNS             []netip.Addr
+	SSID            string
+	IsPublicNetwork bool
 }
 
 // Active returns the adapter that carries the default route, if any.
@@ -60,7 +61,7 @@ type Neighbor struct {
 // Env abstracts the OS network stack.
 type Env interface {
 	Info(ctx context.Context) (Info, error)
-	// Neighbors returns the OS ARP table (IPv4).
+	// Neighbors returns the OS ARP/NDP table (IPv4 and IPv6).
 	Neighbors(ctx context.Context) ([]Neighbor, error)
 	// Ping sends one ICMP echo and reports the round-trip time.
 	Ping(ctx context.Context, ip netip.Addr, timeout time.Duration) (time.Duration, bool)
@@ -74,6 +75,8 @@ type Env interface {
 	ReverseLookup(ctx context.Context, ip netip.Addr, timeout time.Duration) string
 	// WakeOnLAN broadcasts a magic packet.
 	WakeOnLAN(ctx context.Context, mac string, subnetBroadcast netip.Addr) error
+	// NetworkCategory returns the active network profile ("Public", "Private", "Domain", or "").
+	NetworkCategory(ctx context.Context) string
 }
 
 // DiscoveryPorts is the set of TCP ports probed to detect hosts that block
@@ -85,6 +88,10 @@ var ErrUnsupported = errors.New("not supported on this platform")
 
 // Portable provides the parts of Env that are identical on every OS.
 type Portable struct{}
+
+func (Portable) NetworkCategory(_ context.Context) string {
+	return "Private"
+}
 
 func (Portable) TCPOpen(ctx context.Context, ip netip.Addr, port int, timeout time.Duration) bool {
 	d := net.Dialer{Timeout: timeout}
@@ -167,11 +174,14 @@ func (Portable) WakeOnLAN(ctx context.Context, mac string, subnetBroadcast netip
 }
 
 // FilterNeighbors drops entries that are never real hosts: broadcast,
-// multicast, link-local, invalid and all-zero MACs.
+// multicast, invalid and all-zero MACs. Supports both IPv4 and IPv6.
 func FilterNeighbors(in []Neighbor) []Neighbor {
 	out := in[:0:0]
 	for _, n := range in {
-		if !n.IP.Is4() || n.IP.IsMulticast() || n.IP.IsLinkLocalUnicast() || n.IP.IsUnspecified() {
+		if !n.IP.IsValid() || n.IP.IsMulticast() || n.IP.IsUnspecified() || n.IP.IsLoopback() {
+			continue
+		}
+		if n.IP.Is4() && n.IP.IsLinkLocalUnicast() { // Drop IPv4 link-local autoconf (169.254.0.0/16)
 			continue
 		}
 		hw, err := net.ParseMAC(n.MAC)

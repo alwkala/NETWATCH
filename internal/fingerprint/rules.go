@@ -78,6 +78,28 @@ func ClassifyBag(bag *model.EvidenceBag, vendor string, isGateway bool, openPort
 				if item.Key == "hostname" && item.Value != "" {
 					reasons = append(reasons, fmt.Sprintf("NetBIOS computer name: %s", item.Value))
 				}
+			case model.SourceWSD:
+				valLower := strings.ToLower(item.Value)
+				if item.Key == "types" || item.Key == "scopes" {
+					if strings.Contains(valLower, "printdevicetype") || strings.Contains(valLower, "printer") {
+						return ClassificationResult{
+							Type:    model.TypePrinter,
+							Reasons: []string{"WS-Discovery service: PrintDeviceType"},
+						}
+					}
+					if strings.Contains(valLower, "networkvideotransmitter") || strings.Contains(valLower, "onvif") {
+						return ClassificationResult{
+							Type:    model.TypeCamera,
+							Reasons: []string{"WS-Discovery ONVIF Camera: NetworkVideoTransmitter"},
+						}
+					}
+					if strings.Contains(valLower, "pub:computer") || strings.Contains(valLower, "/computer/") {
+						return ClassificationResult{
+							Type:    model.TypeComputer,
+							Reasons: []string{"WS-Discovery target: Computer"},
+						}
+					}
+				}
 			}
 		}
 	}

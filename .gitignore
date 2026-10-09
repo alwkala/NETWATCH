@@ -34,3 +34,4 @@ desktop.ini
 *.ps1
 !scripts/*.ps1
 
+AGENTS.md

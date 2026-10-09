@@ -33,6 +33,7 @@ export interface NetworkInfo {
   dns: string[];
   localIp: string;
   publicIp?: string;
+  isPublicNetwork?: boolean;
   broadcast: string;
   netmask: string;
   totalAddresses: number;

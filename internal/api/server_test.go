@@ -178,8 +178,13 @@ func TestAPI_SecurityBoundaries(t *testing.T) {
 func TestAPI_SettingsAndDatabaseEndpoints(t *testing.T) {
 	srv, token, dbPath := setupTestServer(t)
 	opened := false
+	openedURL := ""
 	srv.OpenDataFolder = func() error {
 		opened = true
+		return nil
+	}
+	srv.OpenURL = func(targetURL string) error {
+		openedURL = targetURL
 		return nil
 	}
 	handler := srv.Handler()
@@ -279,6 +284,27 @@ func TestAPI_SettingsAndDatabaseEndpoints(t *testing.T) {
 	rec = doReq(http.MethodPut, "/v1/settings", badJSON)
 	if rec.Code != http.StatusBadRequest {
 		t.Fatalf("expected 400 Bad Request for invalid scanInterval, got %d", rec.Code)
+	}
+
+	// 9. POST /v1/system/open
+	rec = doReq(http.MethodPost, "/v1/system/open", []byte(`{"url":"http://192.168.1.1"}`))
+	if rec.Code != http.StatusNoContent {
+		t.Fatalf("expected 204 for valid private LAN URL, got %d", rec.Code)
+	}
+	if openedURL != "http://192.168.1.1" {
+		t.Fatalf("expected openedURL to be http://192.168.1.1, got %s", openedURL)
+	}
+
+	// 10. POST /v1/system/open with public IP rejected
+	rec = doReq(http.MethodPost, "/v1/system/open", []byte(`{"url":"http://8.8.8.8"}`))
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("expected 403 for public IP URL, got %d", rec.Code)
+	}
+
+	// 11. POST /v1/system/open with invalid scheme rejected
+	rec = doReq(http.MethodPost, "/v1/system/open", []byte(`{"url":"ftp://192.168.1.1"}`))
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400 for non-http scheme, got %d", rec.Code)
 	}
 }
 

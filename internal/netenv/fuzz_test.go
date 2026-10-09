@@ -104,3 +104,38 @@ func FuzzParseNBNS(f *testing.F) {
 		_, _ = ParseNBNSNodeStatus(data)
 	})
 }
+
+// FuzzParseWSD validates that the WS-Discovery SOAP XML response parser
+// resists arbitrary byte streams, XML entity expansion (XXE), and recursive payloads without panicking.
+func FuzzParseWSD(f *testing.F) {
+	sender := netip.MustParseAddr("192.168.1.50")
+
+	// Seed corpus 1: Valid WS-Discovery ProbeMatches
+	f.Add([]byte(
+		`<?xml version="1.0" encoding="utf-8"?>` +
+			`<soap:Envelope xmlns:soap="http://www.w3.org/2003/05/soap-envelope" ` +
+			`xmlns:wsa="http://schemas.xmlsoap.org/ws/2004/08/addressing" ` +
+			`xmlns:wsd="http://schemas.xmlsoap.org/ws/2005/04/discovery">` +
+			`<soap:Header><wsa:Action>http://schemas.xmlsoap.org/ws/2005/04/discovery/ProbeMatches</wsa:Action></soap:Header>` +
+			`<soap:Body><wsd:ProbeMatches>` +
+			`<wsd:ProbeMatch>` +
+			`<wsa:EndpointReference><wsa:Address>urn:uuid:12345678-abcd-ef01-2345-6789abcdef01</wsa:Address></wsa:EndpointReference>` +
+			`<wsd:Types>dn:NetworkVideoTransmitter tds:Device</wsd:Types>` +
+			`<wsd:Scopes>onvif://www.onvif.org/type/video_encoder onvif://www.onvif.org/name/IPC-Camera</wsd:Scopes>` +
+			`<wsd:XAddrs>http://192.168.1.50:80/onvif/device_service</wsd:XAddrs>` +
+			`</wsd:ProbeMatch>` +
+			`</wsd:ProbeMatches></soap:Body>` +
+			`</soap:Envelope>`,
+	))
+
+	// Seed corpus 2: Malformed XML with entities
+	f.Add([]byte(`<!DOCTYPE test [<!ENTITY xxe SYSTEM "file:///etc/passwd">]><Envelope>&xxe;</Envelope>`))
+
+	// Seed corpus 3: Truncated buffer
+	f.Add([]byte(`<?xml version="1.0"><soap:Envelope>`))
+
+	f.Fuzz(func(t *testing.T, data []byte) {
+		_, _ = ParseWSDResponse(data, sender)
+	})
+}
+

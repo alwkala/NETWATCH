@@ -267,13 +267,25 @@ func (e *Engine) doScan(ctx context.Context, st *scanState) (model.ScanResult, e
 		}
 	}
 
-	// ---- 4. ARP table: picks up hosts found by any method ------------------
+	// ---- 4. ARP/NDP table: picks up hosts found by any method -------------
 	// Wait briefly for the OS to finish resolving MACs from the TCP connects
-	// and ICMP echoes above, then read the full ARP table.
+	// and ICMP echoes above, then read the full ARP/NDP table.
 	time.Sleep(250 * time.Millisecond)
 	nbrs, err := e.env.Neighbors(ctx)
 	if err != nil {
 		e.log.Warn("read ARP table", "err", err)
+	}
+	ipv6ByMAC := map[string]string{}
+	for _, n := range nbrs {
+		if n.IP.Is6() && n.MAC != "" && !n.IP.IsMulticast() {
+			normMAC := normalizeMAC(n.MAC)
+			if normMAC != "" {
+				cur := ipv6ByMAC[normMAC]
+				if cur == "" || strings.HasPrefix(cur, "fe80:") {
+					ipv6ByMAC[normMAC] = n.IP.String()
+				}
+			}
+		}
 	}
 	prefix := ad.IP.Masked()
 	obsByMAC := map[string]*observation{}
@@ -285,6 +297,9 @@ func (e *Engine) doScan(ctx context.Context, st *scanState) (model.ScanResult, e
 			continue
 		}
 		o := &observation{IP: n.IP, MAC: n.MAC}
+		if ip6, ok := ipv6ByMAC[normalizeMAC(n.MAC)]; ok {
+			o.IPv6 = ip6
+		}
 		if p, ok := alive[n.IP]; ok {
 			o.RTT, o.HasRTT = p.rtt, true
 		}
@@ -293,7 +308,11 @@ func (e *Engine) doScan(ctx context.Context, st *scanState) (model.ScanResult, e
 	// Responders without an ARP row (e.g. gateway behind a proxy-ARP bridge)
 	// cannot be identified without a MAC, so they are not inventoried.
 	if mac := ad.MAC; mac != "" {
-		obsByMAC[mac] = &observation{IP: ad.IP.Addr(), MAC: mac, IsSelf: true}
+		selfObs := &observation{IP: ad.IP.Addr(), MAC: mac, IsSelf: true}
+		if ip6, ok := ipv6ByMAC[normalizeMAC(mac)]; ok {
+			selfObs.IPv6 = ip6
+		}
+		obsByMAC[mac] = selfObs
 	}
 	obs := make([]*observation, 0, len(obsByMAC))
 	for _, o := range obsByMAC {
@@ -301,7 +320,7 @@ func (e *Engine) doScan(ctx context.Context, st *scanState) (model.ScanResult, e
 	}
 	sort.Slice(obs, func(i, j int) bool { return obs[i].IP.Less(obs[j].IP) })
 
-	// ---- 5. Multi-Protocol Evidence Enrichment (NBNS, SSDP, mDNS, rDNS) ----
+	// ---- 5. Multi-Protocol Evidence Enrichment (NBNS, SSDP, mDNS, WSD, rDNS)
 	selfHost, _ := os.Hostname()
 	var enriched atomic.Int64
 	nObs := len(obs)
@@ -321,6 +340,23 @@ func (e *Engine) doScan(ctx context.Context, st *scanState) (model.ScanResult, e
 	}
 
 	var rawEvidence []model.DiscoveryEvidence
+	nowUTC := time.Now().UTC()
+
+	// Ingest discovered IPv6 NDP neighbors as evidence
+	for _, n := range nbrs {
+		if n.IP.Is6() && n.MAC != "" && !n.IP.IsMulticast() {
+			rawEvidence = append(rawEvidence, model.DiscoveryEvidence{
+				Source:     model.SourceNDP,
+				IP:         n.IP,
+				MAC:        n.MAC,
+				Key:        "ipv6",
+				Value:      n.IP.String(),
+				ObservedAt: nowUTC,
+				LastSeen:   nowUTC,
+			})
+		}
+	}
+
 	var revMu sync.Mutex
 	var probeWG sync.WaitGroup
 
@@ -362,7 +398,17 @@ func (e *Engine) doScan(ctx context.Context, st *scanState) (model.ScanResult, e
 		}
 	}()
 
-	nowUTC := time.Now().UTC()
+	probeWG.Add(1)
+	go func() {
+		defer probeWG.Done()
+		evs, err := netenv.DiscoverWSD(ctx)
+		if err == nil && len(evs) > 0 {
+			revMu.Lock()
+			rawEvidence = append(rawEvidence, evs...)
+			revMu.Unlock()
+		}
+	}()
+
 	forEach(ctx, obs, 24, func(o *observation) {
 		if o.IsSelf {
 			o.Hostname = fingerprint.SanitizeLANString(selfHost)

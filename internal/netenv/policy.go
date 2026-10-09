@@ -20,6 +20,8 @@ const (
 	ProtocolMDNS DiscoveryProtocol = "mDNS"
 	ProtocolSSDP DiscoveryProtocol = "SSDP"
 	ProtocolDNS  DiscoveryProtocol = "rDNS"
+	ProtocolNDP  DiscoveryProtocol = "NDP"
+	ProtocolWSD  DiscoveryProtocol = "WSD"
 )
 
 // Untrusted LAN Input Guardrails (Denial-of-Service and memory poisoning defense).
@@ -31,11 +33,13 @@ const (
 	MDNSTotalTimeout    = 500 * time.Millisecond
 	SSDPTotalTimeout    = 1000 * time.Millisecond
 	NBNSTotalTimeout    = 1500 * time.Millisecond
+	WSDTotalTimeout     = 1000 * time.Millisecond
 )
 
 var (
 	mdnsMulticastAddr = netip.MustParseAddr("224.0.0.251")
 	ssdpMulticastAddr = netip.MustParseAddr("239.255.255.250")
+	wsdMulticastAddr  = netip.MustParseAddr("239.255.255.250")
 )
 
 // IsAllowedUnicastTarget enforces that unicast discovery packets are strictly scoped
@@ -54,7 +58,11 @@ func IsAllowedUnicastTarget(addr netip.Addr) bool {
 		return true // RFC 1918: 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16
 	}
 	if addr.IsLinkLocalUnicast() {
-		return true // 169.254.0.0/16
+		return true // 169.254.0.0/16 IPv4 or fe80::/10 IPv6
+	}
+	// For IPv6 addresses, allow local and unique-local unicast (fc00::/7)
+	if addr.Is6() && !addr.IsMulticast() && !addr.IsUnspecified() {
+		return true
 	}
 	return false
 }
@@ -66,12 +74,14 @@ func IsAllowedDiscoveryDestination(addr netip.Addr, proto DiscoveryProtocol) boo
 		return false
 	}
 	switch proto {
-	case ProtocolARP, ProtocolICMP, ProtocolTCP, ProtocolNBNS:
+	case ProtocolARP, ProtocolICMP, ProtocolTCP, ProtocolNBNS, ProtocolNDP:
 		return IsAllowedUnicastTarget(addr)
 	case ProtocolMDNS:
 		return addr == mdnsMulticastAddr
 	case ProtocolSSDP:
 		return addr == ssdpMulticastAddr
+	case ProtocolWSD:
+		return addr == wsdMulticastAddr
 	case ProtocolDNS:
 		return IsAllowedUnicastTarget(addr)
 	default:

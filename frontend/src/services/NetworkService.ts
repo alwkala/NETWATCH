@@ -31,6 +31,7 @@ export interface NetworkService {
   // Optional host actions (real engine only)
   clearHistory?(): Promise<void>;
   openDataFolder?(): Promise<void>;
+  openURL?(url: string): Promise<void>;
 
   // Test/Prototype simulation helpers
   setSimulatedEmpty(empty: boolean): void;

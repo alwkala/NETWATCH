@@ -31,6 +31,8 @@ const (
 	SourceMDNS DiscoverySource = "mDNS"
 	SourceSSDP DiscoverySource = "SSDP"
 	SourceDNS  DiscoverySource = "rDNS"
+	SourceNDP  DiscoverySource = "NDP"
+	SourceWSD  DiscoverySource = "WSD"
 )
 
 // DiscoveryEvidence captures an atomic piece of network intelligence observed on the LAN.

@@ -17,6 +17,7 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
+	"net/netip"
 	"net/url"
 	"strconv"
 	"strings"
@@ -25,6 +26,7 @@ import (
 	"netwatch/internal/autostart"
 	"netwatch/internal/engine"
 	"netwatch/internal/model"
+	"netwatch/internal/netenv"
 	"netwatch/internal/store"
 )
 
@@ -48,6 +50,7 @@ type Server struct {
 	log     *slog.Logger
 	// hooks supplied by the host application
 	OpenDataFolder func() error
+	OpenURL        func(targetURL string) error
 }
 
 func New(eng *engine.Engine, cfg Config) *Server {
@@ -116,6 +119,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /v1/data/open", s.openData)
 	mux.HandleFunc("POST /v1/data/prune", s.pruneData)
 	mux.HandleFunc("DELETE /v1/data", s.clearData)
+	mux.HandleFunc("POST /v1/system/open", s.systemOpen)
 	return s.protect(mux)
 }
 
@@ -483,6 +487,13 @@ func (s *Server) putSettings(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, http.StatusBadRequest, "invalid_settings", "scanInterval must be one of: 1m, 5m, 15m, 1h, manual")
 		return
 	}
+	if st.Language != "" && st.Language != "en" && st.Language != "ar" {
+		writeErr(w, http.StatusBadRequest, "invalid_settings", "language must be one of: en, ar")
+		return
+	}
+	if st.Language == "" {
+		st.Language = "en"
+	}
 	if err := s.eng.UpdateSettings(r.Context(), st); err != nil {
 		s.fail(w, err)
 		return
@@ -562,6 +573,40 @@ func (s *Server) pruneData(w http.ResponseWriter, r *http.Request) {
 		"deletedCount":  deleted,
 		"olderThanDays": body.OlderThanDays,
 	})
+}
+
+func (s *Server) systemOpen(w http.ResponseWriter, r *http.Request) {
+	if s.OpenURL == nil {
+		writeErr(w, http.StatusNotImplemented, "unsupported", "opening URLs is not supported in this host")
+		return
+	}
+	var body struct {
+		URL string `json:"url"`
+	}
+	if err := decode(r, &body); err != nil {
+		s.fail(w, err)
+		return
+	}
+	parsed, err := url.Parse(body.URL)
+	if err != nil || (parsed.Scheme != "http" && parsed.Scheme != "https") {
+		writeErr(w, http.StatusBadRequest, "invalid_url", "URL must use http or https scheme")
+		return
+	}
+	host := parsed.Hostname()
+	ip, err := netip.ParseAddr(host)
+	if err != nil {
+		writeErr(w, http.StatusBadRequest, "invalid_target", "URL host must be an IP address")
+		return
+	}
+	if !netenv.IsAllowedUnicastTarget(ip) {
+		writeErr(w, http.StatusForbidden, "forbidden_target", "target IP is outside allowed LAN scope")
+		return
+	}
+	if err := s.OpenURL(body.URL); err != nil {
+		s.fail(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
 }
 
 // ParseOrigin validates a user-supplied origin flag.

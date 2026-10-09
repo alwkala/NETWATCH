@@ -27,6 +27,8 @@ type winEnv struct{ Portable }
 var (
 	iphlpapi         = windows.NewLazySystemDLL("iphlpapi.dll")
 	procGetIpNet     = iphlpapi.NewProc("GetIpNetTable")
+	procGetIpNet2    = iphlpapi.NewProc("GetIpNetTable2")
+	procFreeMibTable = iphlpapi.NewProc("FreeMibTable")
 	procSendARP      = iphlpapi.NewProc("SendARP")
 	procIcmpCreate   = iphlpapi.NewProc("IcmpCreateFile")
 	procIcmpClose    = iphlpapi.NewProc("IcmpCloseHandle")
@@ -117,6 +119,7 @@ func (e *winEnv) Info(ctx context.Context) (Info, error) {
 	if act, ok := info.Active(); ok && act.Type == "Wi-Fi" {
 		info.SSID = e.ssid(ctx)
 	}
+	info.IsPublicNetwork = (e.NetworkCategory(ctx) == "Public")
 	return info, nil
 }
 
@@ -140,12 +143,82 @@ func (e *winEnv) ssid(ctx context.Context) string {
 	return ""
 }
 
-// ---- ARP table ------------------------------------------------------------
+// NetworkCategory queries the Windows network connection profile ("Public", "Private", "Domain").
+func (e *winEnv) NetworkCategory(ctx context.Context) string {
+	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	defer cancel()
+	cmd := exec.CommandContext(ctx, "powershell", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command", "(Get-NetConnectionProfile | Select-Object -ExpandProperty NetworkCategory -First 1)")
+	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true, CreationFlags: 0x08000000}
+	out, err := cmd.Output()
+	if err != nil {
+		return "Private"
+	}
+	cat := strings.TrimSpace(string(out))
+	if cat != "" {
+		return cat
+	}
+	return "Private"
+}
+
+// ---- ARP / NDP table ------------------------------------------------------
+
+type sockaddrInet struct {
+	Family uint16
+	Data   [26]byte
+}
+
+type mibIpNetRow2 struct {
+	Address               sockaddrInet
+	InterfaceIndex        uint32
+	InterfaceLuid         uint64
+	PhysicalAddress       [32]byte
+	PhysicalAddressLength uint32
+	State                 uint32
+	Flags                 uint8
+	Pad                   [3]byte
+	ReachabilityTime      uint32
+}
 
 // MIB_IPNETROW: dwIndex(4), dwPhysAddrLen(4), bPhysAddr[8], dwAddr(4), dwType(4) = 24 bytes.
 const ipNetRowSize = 24
 
 func (e *winEnv) Neighbors(ctx context.Context) ([]Neighbor, error) {
+	// Try modern GetIpNetTable2 (supports both IPv4 ARP and IPv6 NDP without elevation)
+	if procGetIpNet2.Find() == nil && procFreeMibTable.Find() == nil {
+		var pTable unsafe.Pointer
+		r, _, _ := procGetIpNet2.Call(0, uintptr(unsafe.Pointer(&pTable)))
+		if r == 0 && pTable != nil {
+			defer procFreeMibTable.Call(uintptr(pTable))
+			numEntries := *(*uint32)(pTable)
+			offset := uintptr(8)
+			rowSize := unsafe.Sizeof(mibIpNetRow2{})
+
+			var out []Neighbor
+			for i := uint32(0); i < numEntries; i++ {
+				rowPtr := (*mibIpNetRow2)(unsafe.Add(pTable, offset+uintptr(i)*rowSize))
+				if rowPtr.PhysicalAddressLength == 6 && rowPtr.State != 0 && rowPtr.State != 1 {
+					mac := fmt.Sprintf("%02x:%02x:%02x:%02x:%02x:%02x",
+						rowPtr.PhysicalAddress[0], rowPtr.PhysicalAddress[1], rowPtr.PhysicalAddress[2],
+						rowPtr.PhysicalAddress[3], rowPtr.PhysicalAddress[4], rowPtr.PhysicalAddress[5])
+
+					var ip netip.Addr
+					switch rowPtr.Address.Family {
+					case 2: // AF_INET
+						ip = netip.AddrFrom4(*(*[4]byte)(unsafe.Pointer(&rowPtr.Address.Data[2])))
+					case 23: // AF_INET6
+						ip = netip.AddrFrom16(*(*[16]byte)(unsafe.Pointer(&rowPtr.Address.Data[6])))
+					}
+
+					if ip.IsValid() {
+						out = append(out, Neighbor{IP: ip, MAC: mac})
+					}
+				}
+			}
+			return FilterNeighbors(out), nil
+		}
+	}
+
+	// Fallback to legacy GetIpNetTable (IPv4 only)
 	var size uint32
 	r, _, _ := procGetIpNet.Call(0, uintptr(unsafe.Pointer(&size)), 0)
 	if r != uintptr(windows.ERROR_INSUFFICIENT_BUFFER) && r != 0 {

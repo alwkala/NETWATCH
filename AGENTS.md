@@ -185,9 +185,9 @@ cd frontend && npx tsc --noEmit && npx vite build
   - [x] System startup integration: launch at startup via HKCU Run key (`internal/autostart`), `--minimized` launch flag, and single-instance restoration.
   - [x] Event history retention and pruning (`POST /v1/data/prune`).
 - [x] **M4 – Multi-Protocol Discovery, Evidence & Trust (Completed)**: Randomized MAC detection (`isLocallyAdministered`), "Private MAC" badge, device merge & aliasing (`POST /v1/devices/{id}/merge`), trust allowlist (`known`/`guest`/`unknown`), unprivileged mDNS, SSDP & NetBIOS probers, untrusted hostname sanitization, and automated Zero-Egress CI gate.
-- [ ] **M5 – Watchdog, Enhanced Discovery & Device Actions**: IPv6 NDP Neighbor Table discovery (`GetIpNetTable2`), Windows Public Network firewall alert, WS-Discovery protocol (`UDP:3702`), "Open Device" quick actions (Web UI/SSH/RDP), ARP conflict alerts, and latency ledger.
+- [x] **M5 – Watchdog, Enhanced Discovery & Device Actions (In Progress)**: IPv6 NDP Neighbor Table discovery (`GetIpNetTable2`), Windows Public Network firewall alert, WS-Discovery protocol (`UDP:3702`), "Open Device" quick actions (Web UI/SSH/RDP). Remaining: ARP conflict alerts, and latency ledger.
 - [ ] **M6 – Packaging, Cryptographic Integrity & Distribution**: Unsigned binary distribution, automated SHA-256 checksums (`SHA256SUMS.txt`), Windows Defender SmartScreen guidance, reproducible build verification, MSI/NSIS installer, and SBOM.
-- [ ] **M7 – Internationalization (i18n), Diff Reports & Public v1.0**: 7-language air-gapped i18n engine with bundled RTL Arabic typography, historical snapshot diffs, safe CSV export, and Playwright E2E smoke suite.
+- [ ] **M7 – Internationalization (i18n), Diff Reports & Public v1.0 (In Progress)**: Air-gapped i18n engine with full Arabic RTL translation completed. Remaining: additional locales, historical snapshot diffs, safe CSV export, and Playwright E2E smoke suite.
 
 ---
 
