@@ -134,9 +134,14 @@ Low-power Wi-Fi devices sleep frequently to save battery. NETWATCH only marks a 
 
 ### Windows (Recommended)
 1. Download **`netwatch.exe`** from the [Latest Release](https://github.com/alwkala/NETWATCH/releases/tag/v0.2.0-alpha.1).
-2. Double-click to run.  
+2. *(Optional & Recommended)* Verify the SHA-256 cryptographic hash against the release notes:
+   ```powershell
+   Get-FileHash .\netwatch.exe -Algorithm SHA256
+   ```
+3. Double-click to run:
    - **No installation needed** (portable single-file executable).
-   - **No administrator elevation required**.
+   - **No administrator elevation required** (unprivileged user mode).
+   - **Unsigned binary model**: On initial launch, Windows SmartScreen may display *"Unknown Publisher / Windows protected your PC"*. Click **"More info"** -> **"Run anyway"**.
    - Your data is stored locally in `%LOCALAPPDATA%\NetWatch\data\network.db`.
 
 ### Linux & Headless Servers

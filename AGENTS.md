@@ -184,10 +184,10 @@ cd frontend && npx tsc --noEmit && npx vite build
   - [x] Native Windows toast notifications for new devices, offline events, and network changes (`internal/notifier`).
   - [x] System startup integration: launch at startup via HKCU Run key (`internal/autostart`), `--minimized` launch flag, and single-instance restoration.
   - [x] Event history retention and pruning (`POST /v1/data/prune`).
-- [ ] **M4 – Identity & Trust (In Progress)**: Randomized MAC detection (`isLocallyAdministered`), "Private MAC" badge, device merge & aliasing (`POST /v1/devices/{id}/merge`), trust allowlist (`known`/`guest`/`unknown`), unprivileged mDNS & NetBIOS probers, untrusted hostname sanitization, and automated Zero-Egress CI gate.
-- [ ] **M5 – Watchdog & Diagnostics**: ARP conflict & duplicate IP alerts, rogue gateway MAC detection, local rules engine, hop-by-hop traceroute, and per-device latency/uptime history ledger.
-- [ ] **M6 – Diff, Reports & QA**: Historical snapshot diff engine (`GET /v1/reports/diff`), safe CSV export with formula injection defense (`=,+,-,@` escaping), structured JSON export, and Playwright E2E smoke suite.
-- [ ] **M7 – Signed Production**: SignPath.io Authenticode signing, Windows MSI/NSIS installer, SBOM, and `THIRD_PARTY_NOTICES.md`.
+- [x] **M4 – Multi-Protocol Discovery, Evidence & Trust (Completed)**: Randomized MAC detection (`isLocallyAdministered`), "Private MAC" badge, device merge & aliasing (`POST /v1/devices/{id}/merge`), trust allowlist (`known`/`guest`/`unknown`), unprivileged mDNS, SSDP & NetBIOS probers, untrusted hostname sanitization, and automated Zero-Egress CI gate.
+- [ ] **M5 – Watchdog, Enhanced Discovery & Device Actions**: IPv6 NDP Neighbor Table discovery (`GetIpNetTable2`), Windows Public Network firewall alert, WS-Discovery protocol (`UDP:3702`), "Open Device" quick actions (Web UI/SSH/RDP), ARP conflict alerts, and latency ledger.
+- [ ] **M6 – Packaging, Cryptographic Integrity & Distribution**: Unsigned binary distribution, automated SHA-256 checksums (`SHA256SUMS.txt`), Windows Defender SmartScreen guidance, reproducible build verification, MSI/NSIS installer, and SBOM.
+- [ ] **M7 – Internationalization (i18n), Diff Reports & Public v1.0**: 7-language air-gapped i18n engine with bundled RTL Arabic typography, historical snapshot diffs, safe CSV export, and Playwright E2E smoke suite.
 
 ---
 

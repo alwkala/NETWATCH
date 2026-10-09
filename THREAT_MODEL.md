@@ -47,6 +47,9 @@ NETWATCH is a local-first desktop application composed of:
 | **Repudiation (R)** | User or operator denies network changes or scan operations. | Inability to audit when an unknown device joined the LAN. | Local Event Ledger with timestamps, device identity continuity, and non-repudiation audit marker on history purge (`history_cleared_at`). | Ledger is local and user-clearing is supported; it does not constitute a legal, immutable blockchain. | **Active** |
 | **Information Disclosure (I)** | Exfiltration of LAN MAC addresses or hostnames via OUI lookup. | Third-party analytics tracking private home/enterprise hardware. | **Local Embedded Database**: OUI lookup uses offline embedded IEEE file (`internal/oui/ieee-oui.txt`). Automated CI gate verifies zero external dials. | Unauthenticated physical shoulder-surfing of the desktop UI. | **Active** |
 | **Denial of Service (D)** | LAN host floods ICMP/ARP replies during scan sweep. | Engine memory exhaustion or UI thread lockup. | Worker pool concurrency limits, strict socket read deadlines, non-blocking SSE streaming channels. | Network interface saturation by external flooding attacks can still prevent NETWATCH from receiving replies. | **Active** |
+| **Denial of Service (D)** | Attacker broadcasts malformed or cyclic multicast packets (mDNS compression loops, SSDP header bombs, oversized NBNS tables). | Process panic, memory exhaustion, or infinite parser loop. | **Fuzz-Tested Defensive Parsers**: Native Go fuzz test suite (`FuzzParseMDNS`, `FuzzParseSSDP`, `FuzzParseNBNS`) validating 600,000+ mutations without panic. Packet clamping (`MaxMDNSPacketSize=4096`), recursion depth limits (max 10), and line count limits (max 64). | Malicious hosts can still transmit syntactically valid but misleading device metadata. | **Active** |
+| **Information Disclosure (I)** | Exfiltration of LAN MAC addresses or hostnames via OUI lookup or rDNS leakage. | Third-party analytics or public DNS servers tracking private home/enterprise hardware. | **Local Embedded Database & Zero-Egress Dialer**: OUI lookup uses offline embedded IEEE file. `ReverseLookup` enforces `IsAllowedUnicastTarget` at the socket dialer level, immediately blocking any PTR queries directed at external/public DNS resolvers (e.g. `8.8.8.8`). | Unauthenticated physical shoulder-surfing of the desktop UI. | **Active** |
+| **Information Disclosure (I)** | Ephemeral Bearer Token leakage over Server-Sent Events (SSE) streams. | Unauthorized session hijacking or log harvesting. | **Constant-Time Guard & Zero Token Reflection**: SSE stream payloads (`data: ...`) never contain or reflect the session token. Token is strictly authenticated via `Authorization: Bearer` (or constant-time query verification for native EventSource) and is excluded from stdout and rolling logs. | Local memory inspection by processes running with identical OS user privileges. | **Active** |
 | **Elevation of Privilege (E)** | Exploiting raw socket or packet parsing to execute code as Administrator. | System compromise. | **Unprivileged Native APIs**: Windows implementation uses `iphlpapi.dll` (`IcmpSendEcho`, `GetIpNetTable`, `SendARP`) executing in user-mode without UAC/Admin rights. | If Windows kernel drivers (`iphlpapi.dll`) have an unpatched zero-day vulnerability. | **Active** |
 
 ---
@@ -60,9 +63,13 @@ NETWATCH is a local-first desktop application composed of:
 - [x] Strict server-side target validation for probe tooling (RFC 1918, CGNAT, link-local only).
 - [x] Rotating file logger capped at 5 MB with 3 backups (`internal/appdata/logger.go`).
 - [x] Offline OUI parsing with zero network egress.
+- [x] Zero-egress dialer filter on reverse DNS lookup preventing RFC 1918 leakage to public DNS resolvers.
+- [x] Multicast packet parser fuzzing (mDNS, SSDP, NBNS) with 600k+ iterations and zero panics.
+- [x] Constant-time SSE token authorization with zero token reflection in event streams.
 - [x] Untrusted LAN string sanitization stripping Bidi overrides and control runes (`internal/fingerprint/sanitize.go`).
 - [x] CSV formula injection defense (`internal/fingerprint/sanitize.go`).
 - [x] Automated CI Zero-Egress gate (`internal/netenv/egress_test.go`).
+- [x] Unsigned binary release verified with SHA-256 cryptographic checksums.
 
 ---
 

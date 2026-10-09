@@ -332,6 +332,33 @@ func TestAPI_ScanAndSSEStream(t *testing.T) {
 	if body := rec.Body.String(); !strings.Contains(body, "event: ") {
 		t.Fatalf("expected SSE events in body, got: %s", body)
 	}
+
+	// 4. Connect to SSE stream using ?token= query param (EventSource compatibility)
+	streamQueryReq := httptest.NewRequest(http.MethodGet, "/v1/scans/"+startRes.ScanID+"/stream?token="+token, nil).WithContext(ctx)
+	streamQueryReq.Host = "127.0.0.1:8080"
+	rec = httptest.NewRecorder()
+	handler.ServeHTTP(rec, streamQueryReq)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200 OK for SSE stream with valid ?token= query param, got %d", rec.Code)
+	}
+
+	// 5. Connect to SSE stream with invalid ?token=
+	streamWrongTokenReq := httptest.NewRequest(http.MethodGet, "/v1/scans/"+startRes.ScanID+"/stream?token=invalid-secret", nil).WithContext(ctx)
+	streamWrongTokenReq.Host = "127.0.0.1:8080"
+	rec = httptest.NewRecorder()
+	handler.ServeHTTP(rec, streamWrongTokenReq)
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("expected 401 Unauthorized for SSE stream with invalid ?token=, got %d", rec.Code)
+	}
+
+	// 6. Non-stream REST endpoint must reject ?token= query param (strictly enforce Authorization header)
+	restQueryReq := httptest.NewRequest(http.MethodGet, "/v1/devices?token="+token, nil)
+	restQueryReq.Host = "127.0.0.1:8080"
+	rec = httptest.NewRecorder()
+	handler.ServeHTTP(rec, restQueryReq)
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("expected 401 Unauthorized for REST endpoint with ?token= query param, got %d", rec.Code)
+	}
 }
 
 func TestAPI_PruneData(t *testing.T) {

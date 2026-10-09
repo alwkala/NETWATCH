@@ -13,8 +13,36 @@ NETWATCH is engineered with strict local-first security boundaries:
 
 | Version | Supported |
 |---|---|
+| `0.2.x` | :white_check_mark: |
 | `0.1.x` | :white_check_mark: |
 | `< 0.1.0` | :x: |
+
+## Binary Integrity & Unsigned Distribution Model
+
+NETWATCH binaries are distributed as **Unsigned Native Binaries**. This architecture preserves independence, eliminates dependencies on commercial Certificate Authorities, and maintains an air-gapped, sovereign release pipeline.
+
+### Cryptographic Hash Verification
+
+Every release publishes authoritative cryptographic hashes in `SHA256SUMS.txt` and directly within GitHub Release notes. Users and administrators should verify binary integrity prior to execution:
+
+**Windows (PowerShell):**
+```powershell
+Get-FileHash .\netwatch.exe -Algorithm SHA256
+```
+
+**Linux / macOS:**
+```bash
+sha256sum netwatch.exe
+```
+
+Compare the output hash against the published hash in the official release notes. If the hashes match, the binary has not been tampered with.
+
+### Windows Defender SmartScreen Transparency
+
+Because NETWATCH is distributed unsigned without a costly commercial EV certificate, Windows Defender SmartScreen may display an *"Unknown Publisher / Windows protected your PC"* prompt on initial launch.
+- This prompt occurs for any executable without commercial certificate trust history.
+- To execute: Click **"More info"** -> Click **"Run anyway"**.
+- NETWATCH requires **no Administrator rights** and runs completely unprivileged in user mode.
 
 ## Reporting a Vulnerability
 

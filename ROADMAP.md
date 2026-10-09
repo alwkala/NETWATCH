@@ -34,11 +34,11 @@ No feature or diagnostic tool enters NETWATCH unless it passes three architectur
         │
 [M4: Discovery & Evidence]    ✅ Completed (Randomized MAC, Device Merge, Evidence Bus: mDNS/SSDP/NBNS)
         │
-[M5: Watchdog & Diagnostics]  📅 Planned (ARP Conflict Detection, Traceroute, Latency & Uptime Ledger)
+[M5: Watchdog & Discovery++]  📅 Planned (IPv6 NDP, Public Net Alert, WS-Discovery, Open Actions, ARP Conflict)
         │
-[M6: Diff, Reports & i18n]    📅 Planned (Snapshot Diff, 7-Language i18n, Safe Export, Playwright E2E)
+[M6: Packaging & Distribution]📅 Planned (Unsigned EXE + SHA-256 Checksums, SmartScreen Guide, MSI/NSIS)
         │
-[M7: Signed Production]       📅 Planned (SignPath.io Authenticode, MSI/NSIS, SBOM, Notices)
+[M7: Internationalization]    📅 Planned (7-Language Bundled i18n, Snapshot Diff, Safe Export, E2E)
 ```
 
 ### SemVer Release Alignment
@@ -46,10 +46,10 @@ No feature or diagnostic tool enters NETWATCH unless it passes three architectur
 | Milestone | Release Target | SemVer Impact | Focus & Deliverables | Status |
 |---|:---:|:---:|---|:---:|
 | **M1 + M2** | `v0.1.0-alpha.1` | Initial Baseline | Core engine, Windows unprivileged probes, threat model, multi-OS CI | **Shipped** |
-| **M3 + M4** | `v0.2.0-alpha.1` | **MINOR** | Settings, auto-scan, toast notifications, multi-protocol evidence bus | **Ready** |
-| **M5** | `v0.3.0-alpha.1` | **MINOR** | Network watchdog, rogue gateway alerts, traceroute, latency trends | Planned |
-| **M6** | `v0.4.0-beta.1` | **MINOR** | Historical snapshot diffs, 7-language i18n, safe CSV/JSON exports, E2E | Planned |
-| **M7** | `v1.0.0` | **MAJOR** | Authenticode signing, Windows MSI/NSIS installers, public release | Planned |
+| **M3 + M4** | `v0.2.0-alpha.1` | **MINOR** | Settings, auto-scan, toast notifications, multi-protocol evidence bus | **Shipped** |
+| **M5** | `v0.3.0-alpha.1` | **MINOR** | IPv6 NDP discovery, Public net warning, WS-Discovery, Open Device actions, Watchdog | Planned |
+| **M6** | `v0.4.0-beta.1` | **MINOR** | Unsigned native installer (MSI/NSIS), SHA-256 verification, SmartScreen guidance | Planned |
+| **M7** | `v1.0.0` | **MAJOR** | 7-language air-gapped i18n, historical snapshot diffs, safe exports, public v1.0 | Planned |
 
 ---
 
@@ -111,7 +111,21 @@ No feature or diagnostic tool enters NETWATCH unless it passes three architectur
 
 ---
 
-### 📅 Milestone 5: Watchdog Anomaly Detection & Network Diagnostics
+### 📅 Milestone 5: Watchdog, Enhanced Discovery & Device Actions
+- [ ] **IPv6 Neighbor Discovery Protocol (NDP)**:
+  - [ ] Unprivileged IPv6 neighbor table ingestion via `GetIpNetTable2` on Windows (`iphlpapi.dll`) and `/proc/net/ipv6_route` on Linux.
+  - [ ] Correlate IPv6 Link-Local (`fe80::`) and SLAAC/DHCPv6 global addresses with existing MAC device ledger entries.
+- [ ] **Windows Public Network Firewall Suppression Alert**:
+  - [ ] Auto-detect active network profile category (Public vs Private) via network adapter properties.
+  - [ ] Non-intrusive UI warning banner when connected to a "Public" profile: *"⚠️ Current network is Public. Windows Firewall may suppress mDNS/SSDP discovery responses. Switch to Private for full device visibility."*
+- [ ] **WS-Discovery Protocol (WSD)**:
+  - [ ] Multicast probe over SOAP/UDP port 3702 (`239.255.255.250:3702`).
+  - [ ] Discover Windows PCs, network printers, and ONVIF IP security cameras that ignore standard SSDP/mDNS.
+- [ ] **"Open Device" Quick Actions in UI**:
+  - [ ] Instant action buttons in Device Details:
+    - `Open Web UI (HTTP :80)` and `Open Web UI (HTTPS :443)` launching default system browser.
+    - `Connect SSH (:22)` and `Connect RDP (:3389)`.
+    - Direct `Ping` and `Wake-on-LAN` quick triggers.
 - [ ] **Network Watchdog & Anomaly Detection**:
   - [ ] ARP Conflict / Duplicate IP detection: trigger `ip_conflict` alert when multiple distinct MACs claim the same IP within the flap window.
   - [ ] Gateway Impersonation Alert: high-severity event triggered if the default gateway MAC address changes without network interface reconnection.
@@ -119,11 +133,26 @@ No feature or diagnostic tool enters NETWATCH unless it passes three architectur
 - [ ] **Diagnostics & Latency Ledger**:
   - [ ] Per-device latency & uptime history ledger (bounded ring buffer / SQLite table) with interactive trend charts.
   - [ ] Hop-by-hop Traceroute tool using unprivileged TTL-incremented ICMP echo probes.
-  - [ ] Reverse DNS lookup benchmark and local gateway response time tracking.
 
 ---
 
-### 📅 Milestone 6: Data Portability, Internationalization (i18n) & Quality Assurance
+### 📅 Milestone 6: Packaging, Cryptographic Integrity & Distribution
+- [ ] **Unsigned Binary Distribution Model (Replacing SignPath.io)**:
+  - [x] **Decision**: Replaced external Authenticode (SignPath.io) dependency with air-gapped, zero-trust cryptographic verification model.
+  - [x] Automated SHA-256 checksum generation (`SHA256SUMS.txt`) for all release binaries and zip archives.
+  - [x] Windows Defender SmartScreen user runbook ("Unknown Publisher / Run anyway" guidance).
+  - [ ] Reproducible build instructions allowing users and security auditors to verify binary hashes directly from source.
+- [ ] **Installers & Packaging**:
+  - [ ] Windows Installer (MSI / NSIS) with uninstaller, desktop shortcut, and autostart registration.
+  - [ ] Standalone single-file portable Windows executable (`netwatch.exe`).
+  - [ ] Cross-platform desktop packages (Linux AppImage/DEB and macOS DMG).
+- [ ] **Supply Chain Hygiene**:
+  - [ ] Software Bill of Materials (SBOM) generation via `syft` or GitHub Dependency Graph.
+  - [ ] Dedicated `THIRD_PARTY_NOTICES.md` documenting licenses for bundled OFL fonts (*Plus Jakarta Sans*, *JetBrains Mono*) and IEEE OUI data.
+
+---
+
+### 📅 Milestone 7: Internationalization (i18n), Diff Reports & Public v1.0
 - [ ] **Internationalization (i18n) & Multi-Language Architecture**:
   - [ ] Lightweight, air-gapped i18n engine with zero external network requests and fully bundled local translation files.
   - [ ] Bundled 7 core locale translation files:
@@ -134,30 +163,15 @@ No feature or diagnostic tool enters NETWATCH unless it passes three architectur
     - Spanish (`es`)
     - Japanese (`ja`)
     - Simplified Chinese (`zh-CN`)
-  - [ ] Extensible JSON locale registry (`frontend/src/locales/<lang>.json`) with strictly typed translation keys, automatic fallback to `en`, and documentation for adding community translations without code refactoring.
+  - [ ] Extensible JSON locale registry (`frontend/src/locales/<lang>.json`) with strictly typed translation keys and automatic fallback to `en`.
   - [ ] Persistent user language preference stored in SQLite settings (`GET/PUT /v1/settings` -> `settings.language`) with immediate UI re-rendering.
 - [ ] **Historical Diff & Digest Reports**:
   - [ ] Snapshot Diff Engine (`GET /v1/reports/diff?from=...&to=...`): calculate joined, departed, and IP-drifted devices between any two historical dates.
   - [ ] Scheduled local digest: weekly summary of new, active, and dormant devices.
-- [ ] **Safe Data Export**:
-  - [ ] CSV export (`GET /v1/export/devices.csv`, `GET /v1/export/events.csv`) with automatic spreadsheet formula injection protection (escaping `=`, `+`, `-`, `@`).
+- [ ] **Safe Data Export & QA**:
+  - [ ] CSV export (`GET /v1/export/devices.csv`, `GET /v1/export/events.csv`) with formula injection defense.
   - [ ] Structured JSON export and backup verification.
-- [ ] **Automated End-to-End Testing**:
   - [ ] Playwright E2E smoke test suite exercising `netwatchd` loopback API and production React UI.
-  - [ ] Unit tests for `internal/netenv` platform parsing across simulated Windows and Linux environments.
-
----
-
-### 📅 Milestone 7: Production Release, Code Signing & Distribution
-- [ ] **Authenticode Code Signing**:
-  - [ ] Automated production binary signing via **[SignPath.io](https://signpath.io/)** Foundation certificate.
-  - [ ] Publish SHA-256 integrity checksums for all release artifacts.
-- [ ] **Packaging & Installers**:
-  - [ ] Windows Installer (MSI / NSIS) with uninstaller and Winget manifest submission.
-  - [ ] Cross-platform desktop builds (Linux AppImage/DEB and macOS DMG).
-- [ ] **Supply Chain & Licensing Hygiene**:
-  - [ ] Software Bill of Materials (SBOM) generation via `syft` or GitHub Dependency Graph.
-  - [ ] Dedicated `THIRD_PARTY_NOTICES.md` documenting licenses for bundled OFL fonts (*Plus Jakarta Sans*, *JetBrains Mono*) and IEEE OUI data.
 
 ---
 

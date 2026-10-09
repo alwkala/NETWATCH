@@ -7,6 +7,7 @@ frontend/dist/*
 
 # Desktop & Go binary build outputs
 build/bin/
+build/dist/
 prototype/
 *.exe
 *.exe~
@@ -31,4 +32,5 @@ prototype/
 Thumbs.db
 desktop.ini
 *.ps1
+!scripts/*.ps1
 

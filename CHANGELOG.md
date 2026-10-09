@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Native Multicast Parser Fuzz Testing**:
+  - Implemented Go native fuzz test suite (`internal/netenv/fuzz_test.go`) for `FuzzParseMDNS`, `FuzzParseSSDP`, and `FuzzParseNBNS` validating 600,000+ random and malformed inputs with zero panics.
+- **Automated Release Packaging & SHA-256 Script**:
+  - Added `scripts/build_release.ps1` automating Windows GUI subsystem desktop compilation, ZIP archiving, and `SHA256SUMS.txt` hash calculation.
+- **Server-Sent Events (SSE) Stream Token Verification**:
+  - Added constant-time fallback validation for `?token=` query parameters exclusively on `/stream` endpoints for native EventSource client support while strictly enforcing `Authorization: Bearer` on all REST endpoints.
+
+### Changed
+- **Zero-Egress Reverse DNS (rDNS) Hardening**:
+  - Enforced `IsAllowedUnicastTarget` at the socket dialer level in `ReverseLookup` (`internal/netenv/netenv.go`), immediately blocking any PTR queries directed at external or public DNS resolvers (e.g. `8.8.8.8`) to eliminate DNS leakage and latency.
+- **Roadmap Governance & Sequencing**:
+  - Updated Milestone 5 with IPv6 Neighbor Discovery Protocol (NDP), Windows Public Network firewall alert, WS-Discovery protocol (`UDP:3702`), and "Open Device Actions" (HTTP/HTTPS/SSH/RDP).
+  - Reprioritized Milestone 6 to focus on Unsigned Binary Distribution, SHA-256 Checksums, and native installers before internationalization (Milestone 7).
+  - Updated `THREAT_MODEL.md` and `SECURITY.md` reflecting fuzz-tested multicast immunity, unsigned binary distribution, and SHA-256 verification.
+
 ## [v0.2.0-alpha.1] - 2026-10-06
 
 ### Added

@@ -180,6 +180,14 @@ func (s *Server) hostOK(host string) bool {
 func (s *Server) tokenOK(r *http.Request) bool {
 	got, ok := strings.CutPrefix(r.Header.Get("Authorization"), "Bearer ")
 	if !ok {
+		// Fallback for Server-Sent Events (SSE) endpoints where native EventSource cannot send Authorization headers.
+		// Allowed strictly on /stream paths, verified via constant-time comparison.
+		if strings.HasSuffix(r.URL.Path, "/stream") {
+			qToken := r.URL.Query().Get("token")
+			if qToken != "" && s.cfg.Token != "" && subtle.ConstantTimeCompare([]byte(qToken), []byte(s.cfg.Token)) == 1 {
+				return true
+			}
+		}
 		return false
 	}
 	return s.cfg.Token != "" && subtle.ConstantTimeCompare([]byte(got), []byte(s.cfg.Token)) == 1

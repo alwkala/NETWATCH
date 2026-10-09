@@ -97,9 +97,27 @@ func (Portable) TCPOpen(ctx context.Context, ip netip.Addr, port int, timeout ti
 }
 
 func (Portable) ReverseLookup(ctx context.Context, ip netip.Addr, timeout time.Duration) string {
+	if !IsAllowedUnicastTarget(ip) {
+		return ""
+	}
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
-	r := net.Resolver{PreferGo: true}
+	r := net.Resolver{
+		PreferGo: true,
+		Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
+			host, _, err := net.SplitHostPort(address)
+			if err != nil {
+				return nil, err
+			}
+			addr, err := netip.ParseAddr(host)
+			if err != nil || !IsAllowedUnicastTarget(addr) {
+				// Zero-Egress Invariant: Strictly prohibit querying external/public DNS servers for LAN PTR queries.
+				return nil, ErrDestinationNotAllowed
+			}
+			var d net.Dialer
+			return d.DialContext(ctx, network, address)
+		},
+	}
 	names, err := r.LookupAddr(ctx, ip.String())
 	if err != nil || len(names) == 0 {
 		return ""
