@@ -6,7 +6,12 @@
 
 **A private, local-first network intelligence and asset ledger desktop app for Windows, Linux, and macOS.**
 
-[![Release](https://img.shields.io/github/v/release/alwkala/NETWATCH?include_prereleases&color=blue&label=Latest%20Release)](https://github.com/alwkala/NETWATCH/releases/tag/v0.2.0-alpha.1)
+<p align="center">
+  <b>English</b> •
+  <a href="README.ar.md"><b>العربية</b></a>
+</p>
+
+[![Release](https://img.shields.io/github/v/release/alwkala/NETWATCH?include_prereleases&color=blue&label=Latest%20Release)](https://github.com/alwkala/NETWATCH/releases)
 [![CI](https://github.com/alwkala/NETWATCH/actions/workflows/ci.yml/badge.svg)](https://github.com/alwkala/NETWATCH/actions/workflows/ci.yml)
 [![License: MIT & Apache 2.0](https://img.shields.io/badge/License-MIT%20%2F%20Apache%202.0-blue.svg)](LICENSE-MIT)
 [![Privacy Guarantee](https://img.shields.io/badge/Privacy-100%25_Local--First-emerald.svg)](#privacy-guarantee)
@@ -14,7 +19,7 @@
 
 <br>
 
-<img src="docs/Snapshots/home-desktop-dark-theme.png" alt="NETWATCH Dashboard" width="100%" style="border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.3);" />
+<img src="docs/netwatch-social-preview.jpg" alt="NETWATCH Hero Preview" width="100%" style="border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.3);" />
 
 <br><br>
 
