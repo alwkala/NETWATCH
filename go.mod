@@ -5,7 +5,7 @@ go 1.26.0
 require (
 	github.com/ncruces/go-sqlite3 v0.35.6
 	github.com/wailsapp/wails/v2 v2.10.2
-	golang.org/x/sys v0.48.0
+	golang.org/x/sys v0.49.0
 )
 
 require (
